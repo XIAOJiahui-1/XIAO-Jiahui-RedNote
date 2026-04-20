@@ -262,15 +262,18 @@
                     <div class="flex items-center justify-between pt-3 border-t border-gray-50">
                         <div class="flex -space-x-2">
                             </div>
+                        
                         <div class="flex space-x-2">
-                            <!-- 新增找搭子、AI规划按钮 -->
-                            <button class="bg-pink-100 text-pink-700 font-medium text-xs px-3 py-1.5 rounded-lg">
+                            <!-- 找搭子按钮 - 跳转至详情页partner Tab -->
+                            <button @click.stop="goToDetail(item, 'partner')" class="bg-pink-100 text-pink-700 font-medium text-xs px-3 py-1.5 rounded-lg">
                                 找搭子 <i class="fas fa-user-friends text-[10px] ml-1"></i>
                             </button>
-                            <button class="bg-blue-100 text-blue-700 font-medium text-xs px-3 py-1.5 rounded-lg">
+                            <!-- AI规划按钮 - 跳转至详情页ai Tab -->
+                            <button @click.stop="goToDetail(item, 'ai')" class="bg-blue-100 text-blue-700 font-medium text-xs px-3 py-1.5 rounded-lg">
                                 AI规划 <i class="fas fa-robot text-[10px] ml-1"></i>
                             </button>
-                            <button class="bg-purple-100 text-purple-700 font-medium text-xs px-3 py-1.5 rounded-lg">
+                            <!-- 去组队按钮 - 跳转至详情页chat Tab -->
+                            <button @click.stop="goToDetail(item, 'chat')" class="bg-purple-100 text-purple-700 font-medium text-xs px-3 py-1.5 rounded-lg">
                                 去组队 <i class="fas fa-chevron-right text-[10px] ml-1"></i>
                             </button>
                         </div>
@@ -461,10 +464,17 @@
                             <img :src="msg.avatar" class="w-8 h-8 rounded-full shrink-0 border border-gray-200 shadow-sm" :class="msg.isMe ? 'ml-2' : 'mr-2'">
                             <div class="flex flex-col" :class="msg.isMe ? 'items-end' : 'items-start'">
                                 <span v-if="!msg.isMe" class="text-[10px] text-gray-500 mb-1 ml-1 flex items-center">
-                                    {{ msg.user }} <i v-if="msg.verified" class="fas fa-check-circle text-blue-500 ml-1 text-[8px]" title="已验票"></i>
+                                    {{ msg.user }} 
+                                    <i v-if="msg.verified" class="fas fa-check-circle text-blue-500 ml-1 text-[8px]" title="已验票"></i>
+                                    <!-- 新增：应援消息标签 -->
+                                    <span v-if="msg.isSupport" class="ml-1 bg-pink-100 text-pink-600 text-[8px] px-1 rounded">应援</span>
                                 </span>
+                                <!-- 新增：应援消息气泡样式 -->
                                 <div class="p-2.5 rounded-2xl text-sm message-bubble shadow-sm"
-                                     :class="msg.isMe ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100'">
+                                     :class="[
+                                         msg.isMe ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100',
+                                         msg.isSupport ? (msg.isMe ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-gradient-to-r from-pink-50 to-purple-50 border-pink-200') : ''
+                                     ]">
                                     {{ msg.text }}
                                 </div>
                             </div>
@@ -802,6 +812,33 @@
                     { id: 1, user: '票务小助手', avatar: 'https://ui-avatars.com/api/?name=官&background=f3f4f6&color=6D28D9', text: '欢迎加入本场演出的官方验票群！大家可以在这里交流攻略、找搭子。', isMe: false, verified: true },
                     { id: 2, user: '冰摇桃桃', avatar: 'https://ui-avatars.com/api/?name=桃&background=fce7f3&color=db2777', text: '有没有小伙伴一起拼房的？我订了双人房，可分摊费用', isMe: false, verified: true },
                     { id: 3, user: '我', avatar: 'https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9', text: '我感兴趣！请问酒店位置在哪里？', isMe: true, verified: true }
+                    {
+                        id: 10, // 自增ID
+                        user: "应援小助手",
+                        avatar: "https://ui-avatars.com/api/?name=应&background=6D28D9&color=ffffff",
+                        text: "【官方应援】本场演唱会专属应援棒已上线群商城，凭票根可享8折优惠！",
+                        isMe: false,
+                        verified: true,
+                        isSupport: true // 标记为应援消息
+                    },
+                    {
+                        id: 11,
+                        user: "星光闪闪",
+                        avatar: "https://ui-avatars.com/api/?name=星&background=DB2777&color=ffffff",
+                        text: "有没有宝子一起组队应援！我这边有10人团，统一举粉色灯牌～",
+                        isMe: false,
+                        verified: true,
+                        isSupport: true
+                    },
+                    {
+                        id: 12,
+                        user: "我",
+                        avatar: "https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9",
+                        text: "算我一个！我带应援手环，咱们中场一起喊口号～",
+                        isMe: true,
+                        isSupport: true
+                    },
+                
                 ],
                 // 找搭子数据
                 partners: [
@@ -829,10 +866,10 @@
         },
         methods: {
             // 进入详情页
-            goToDetail(item) {
-                this.currentView = 'detail';
+            goToDetail(item, targetTab = 'info') {
                 this.currentEvent = item;
-                this.activeTab = 'info';
+                this.currentView = 'detail';
+                this.activeTab = targetTab; // 新增：跳转到指定Tab
             },
             // 返回上一页
             goBack() {
