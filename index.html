@@ -532,17 +532,81 @@
 
 </div>
 
+<div v-if="showAIModal" class="absolute inset-0 bg-black/60 z-50 flex items-end justify-center slide-enter-active">
+        <div class="bg-white w-full rounded-t-3xl p-5 pb-8 flex flex-col max-h-[85%]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-gray-800 flex items-center">
+                    <i class="fas fa-robot text-primary mr-2"></i>AI 智能规划
+                </h3>
+                <button @click="showAIModal = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div v-if="isAILoading" class="flex flex-col items-center justify-center py-12 space-y-4">
+                <i class="fas fa-circle-notch fa-spin text-4xl text-primary"></i>
+                <p class="text-sm text-gray-500">正在为您生成专属出行、住宿与面基方案...</p>
+            </div>
+
+            <div v-else class="overflow-y-auto flex-1 hide-scrollbar space-y-4">
+                <div class="bg-purple-50 p-3 rounded-xl border border-purple-100">
+                    <p class="text-xs text-purple-800 font-bold mb-1">目标：{{ aiTargetEvent?.title }}</p>
+                    <p class="text-[10px] text-purple-600">已结合全网数据为您定制以下方案：</p>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 border-l-4 border-blue-500 pl-2">🚗 最佳路线建议</h4>
+                    <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">建议乘坐高铁至当地主站，出站后转乘地铁直达 <strong>{{ aiTargetEvent?.location }}</strong>。该场馆周边打车易拥堵，地铁出行可节约至少40分钟。</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 border-l-4 border-pink-500 pl-2">🏨 住宿推荐</h4>
+                    <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">距场馆1.5公里内有 3 家高性价比连锁酒店（均价¥200-¥350）。建议预定“全季”或“亚朵”，支持免费取消，方便应对行程变化。</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 border-l-4 border-orange-500 pl-2">🍻 搭子建议</h4>
+                    <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">目前已有 <strong>{{ aiTargetEvent?.partnerCount }}</strong> 人在找搭子，您的预算偏好符合主流。建议在APP内发布【拼房】或【拼车】需求，预计匹配成功率高达 92%。</p>
+                </div>
+            </div>
+            
+            <button v-if="!isAILoading" @click="showAIModal = false" class="w-full bg-primary text-white font-bold py-3 rounded-xl mt-4 shadow-md active:scale-95 transition-transform">
+                一键应用至我的行程
+            </button>
+        </div>
+    </div>
+
+    <div v-if="['home', 'tickets', 'messages', 'profile'].includes(currentView)" class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 shrink-0 z-40">
+        <div @click="currentView = 'home'" :class="['flex flex-col items-center cursor-pointer', currentView === 'home' ? 'text-primary' : 'text-gray-400']">
+            <i class="fas fa-compass text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">发现</span>
+        </div>
+        <div @click="currentView = 'tickets'" :class="['flex flex-col items-center cursor-pointer', currentView === 'tickets' ? 'text-primary' : 'text-gray-400']">
+            <i class="fas fa-ticket-alt text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">我的票夹</span>
+        </div>
+        <div @click="currentView = 'messages'" :class="['flex flex-col items-center cursor-pointer relative', currentView === 'messages' ? 'text-primary' : 'text-gray-400']">
+            <div class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+            <i class="fas fa-comments text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">消息</span>
+        </div>
+        <div @click="currentView = 'profile'" :class="['flex flex-col items-center cursor-pointer', currentView === 'profile' ? 'text-primary' : 'text-gray-400']">
+            <i class="fas fa-user text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">我的</span>
+        </div>
+    </div>
+
+</div>
+
 <script>
     const { createApp } = Vue;
 
     createApp({
         data() {
-            showAIModal: false,
-            isAILoading: false,
-            aiTargetEvent: null,
-            selectedCategory: '全部',
-            categories: ['全部', '演唱会', '音乐节', '体育赛事', '电竞赛事', '话剧音乐剧', '漫展展览'],
             return {
+                // 修复 1：把这些新增的变量放进 return {} 里面
+                showAIModal: false,
+                isAILoading: false,
+                aiTargetEvent: null,
+                selectedCategory: '全部',
+                categories: ['全部', '演唱会', '音乐节', '体育赛事', '电竞赛事', '话剧音乐剧', '漫展展览'],
+                
                 currentView: 'home', // 'home', 'detail'
                 activeTab: 'chat', // 'info', 'chat', 'partner'
                 selectedEvent: null,
@@ -656,7 +720,7 @@
         computed: {
             currentEvent() {
                 return this.selectedEvent;
-            }
+            }, // 修复 2：这里补上逗号
             filteredEvents() {
                 if (this.selectedCategory === '全部') {
                     return this.events;
@@ -721,7 +785,7 @@
                 this.showPublishModal = false;
                 this.newPartnerForm = { type: '拼车', city: '', desc: '', cost: '' };
                 this.activeTab = 'partner';
-            }
+            }, // 修复 3：这里补上逗号
             startAIPlan(item) {
                 this.aiTargetEvent = item;
                 this.showAIModal = true;
@@ -730,7 +794,7 @@
                 setTimeout(() => {
                     this.isAILoading = false;
                 }, 1500);
-            },
+            }
         }
     }).mount('#app');
 </script>
