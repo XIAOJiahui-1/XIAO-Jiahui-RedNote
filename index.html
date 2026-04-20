@@ -3,44 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StarGo - AI 演出赛事出行助手</title>
+    <title>StarGo - 演出赛事找搭子</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6D28D9', // 深紫色
+                        secondary: '#DB2777', // 粉色
+                        dark: '#111827',
+                        light: '#F3F4F6'
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f3f4f6;
+            background-color: #e5e7eb;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        /* 移动端模拟容器 */
-        .app-container {
+        /* 模拟移动端容器 */
+        #app {
             width: 100%;
-            max-width: 390px;
-            height: 844px; /* iPhone 12/13/14 Pro height */
+            max-width: 400px;
+            height: 100vh;
+            max-height: 850px;
             background-color: #ffffff;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             display: flex;
             flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
         @media (min-width: 640px) {
-            .app-container {
+            #app {
+                height: 850px;
                 border-radius: 40px;
                 border: 8px solid #1f2937;
-                height: 800px;
             }
         }
 
-        /* 隐藏滚动条但保留滚动功能 */
+        /* 隐藏滚动条 */
         .hide-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -50,501 +66,482 @@
         }
 
         /* 页面切换动画 */
-        .page {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-            flex: 1;
-            overflow-y: auto;
-            padding-bottom: 80px; /* 为底部导航留出空间 */
+        .slide-enter-active, .slide-leave-active {
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
-        .page.active {
-            display: block;
+        .slide-enter-from {
+            transform: translateX(100%);
+            opacity: 0;
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .slide-leave-to {
+            transform: translateX(-100%);
+            opacity: 0;
         }
 
         /* 渐变背景 */
-        .bg-gradient-primary {
-            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
-        }
-        
-        .bg-gradient-card {
-            background: linear-gradient(180deg, #fdf4ff 0%, #ffffff 100%);
+        .bg-gradient-brand {
+            background: linear-gradient(135deg, #6D28D9 0%, #DB2777 100%);
         }
 
-        /* 骨架屏加载动画 */
-        .skeleton {
-            background: #e2e8f0;
-            background-image: linear-gradient(90deg, #e2e8f0 0px, #f1f5f9 40px, #e2e8f0 80px);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite linear;
+        /* 聊天气泡动画 */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
         }
-
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+        .message-bubble {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <div class="w-full h-12 flex justify-between items-center px-6 pt-2 bg-transparent absolute top-0 z-50 text-gray-800">
-            <span class="text-sm font-semibold">12:00</span>
-            <div class="flex space-x-2 text-xs">
-                <i class="fas fa-signal"></i>
-                <i class="fas fa-wifi"></i>
-                <i class="fas fa-battery-full"></i>
+<div id="app">
+    <div v-show="currentView === 'home'" class="flex flex-col h-full w-full bg-gray-50">
+        <div class="bg-gradient-brand pt-12 pb-6 px-5 rounded-b-3xl shadow-lg relative z-10 shrink-0">
+            <div class="flex justify-between items-center mb-4 text-white">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">StarGo</h1>
+                    <p class="text-xs opacity-90 mt-1"><i class="fas fa-check-circle text-green-300 mr-1"></i>凭票入群 · 拒绝黄牛 · 轻松AA</p>
+                </div>
+                <img src="https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
+            </div>
+            <div class="bg-white/20 backdrop-blur-md rounded-full flex items-center px-4 py-2 text-white border border-white/30">
+                <i class="fas fa-search opacity-70"></i>
+                <input type="text" placeholder="搜索演唱会、赛事、找搭子..." class="bg-transparent border-none outline-none ml-2 text-sm placeholder-white/70 w-full">
             </div>
         </div>
 
-        <div id="view-home" class="page active hide-scrollbar">
-            <div class="bg-gradient-primary pt-16 pb-6 px-5 rounded-b-[2.5rem] shadow-sm">
-                <div class="flex items-center space-x-3 mb-4">
-                    <img src="https://ui-avatars.com/api/?name=User&background=fff&color=a855f7" class="w-10 h-10 rounded-full border-2 border-white shadow-sm" alt="User">
-                    <div>
-                        <h2 class="text-white font-bold text-lg leading-tight">准备好出发了吗？</h2>
-                        <p class="text-white/80 text-xs">AI 为你的热爱保驾护航</p>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-2xl p-1 shadow-lg flex items-center" onclick="showAILoader()">
-                    <div class="bg-purple-100 p-2.5 rounded-xl ml-1">
-                        <i class="fas fa-robot text-purple-600 text-lg"></i>
-                    </div>
-                    <input type="text" placeholder="输入你想看的演出或需求..." class="flex-1 bg-transparent border-none focus:ring-0 text-sm px-3 text-gray-700 outline-none" readonly>
-                    <button class="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-medium mr-1">生成</button>
-                </div>
+        <div class="flex px-5 py-4 space-x-3 shrink-0 overflow-x-auto hide-scrollbar bg-white shadow-sm z-0 relative -mt-4 pt-6">
+            <div class="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-xs font-medium flex items-center whitespace-nowrap">
+                <i class="fas fa-shield-alt mr-1"></i> 官方接口验票
             </div>
-
-            <div class="px-5 mt-6">
-                <div class="flex justify-between items-end mb-4">
-                    <h3 class="font-bold text-gray-900 text-lg">近期热门</h3>
-                    <span class="text-xs text-gray-500">查看全部 <i class="fas fa-chevron-right ml-1"></i></span>
-                </div>
-                
-                <div class="flex space-x-4 overflow-x-auto hide-scrollbar pb-2">
-                    <div class="min-w-[240px] bg-white rounded-2xl p-3 shadow-sm border border-gray-100" onclick="showAILoader('Suede')">
-                        <div class="h-32 bg-gray-200 rounded-xl mb-3 overflow-hidden relative">
-                            <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded-md backdrop-blur-sm">演唱会</div>
-                            <img src="https://images.unsplash.com/photo-1540039155733-d71efd44bd1b?auto=format&fit=crop&q=80&w=400" class="w-full h-full object-cover" alt="Concert">
-                        </div>
-                        <h4 class="font-bold text-gray-900 text-sm mb-1 truncate">山羊皮 Suede 香港站</h4>
-                        <p class="text-xs text-gray-500 mb-2"><i class="fas fa-calendar-alt mr-1"></i>2026.04.11 | 香港西九文化区</p>
-                        <div class="flex items-center justify-between mt-2">
-                            <span class="text-purple-600 font-bold text-sm">¥540起</span>
-                            <button class="text-xs bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg font-medium">AI 规划</button>
-                        </div>
-                    </div>
-                    
-                    <div class="min-w-[240px] bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
-                        <div class="h-32 bg-gray-200 rounded-xl mb-3 overflow-hidden relative">
-                            <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded-md backdrop-blur-sm">演唱会</div>
-                            <img src="https://images.unsplash.com/photo-1470229722913-7c092bba1a8d?auto=format&fit=crop&q=80&w=400" class="w-full h-full object-cover" alt="Concert">
-                        </div>
-                        <h4 class="font-bold text-gray-900 text-sm mb-1 truncate">Imagine Dragons 广州站</h4>
-                        <p class="text-xs text-gray-500 mb-2"><i class="fas fa-calendar-alt mr-1"></i>2026.03.20 | 广州奥体中心</p>
-                        <div class="flex items-center justify-between mt-2">
-                            <span class="text-purple-600 font-bold text-sm">¥380起</span>
-                            <button class="text-xs bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg font-medium">AI 规划</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 mt-6">
-                    <div class="bg-gradient-card border border-purple-100 rounded-2xl p-4 flex flex-col justify-between h-24" onclick="switchTab('view-social')">
-                        <i class="fas fa-user-friends text-purple-500 text-xl"></i>
-                        <div>
-                            <div class="font-bold text-sm text-gray-900">找搭子</div>
-                            <div class="text-[10px] text-gray-500">拼车/拼房/面基</div>
-                        </div>
-                    </div>
-                    <div class="bg-gradient-card border border-pink-100 rounded-2xl p-4 flex flex-col justify-between h-24">
-                        <i class="fas fa-comments text-pink-500 text-xl"></i>
-                        <div>
-                            <div class="font-bold text-sm text-gray-900">纯粹聊天室</div>
-                            <div class="text-[10px] text-gray-500">官方验票 拒绝黄牛</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="bg-pink-50 text-pink-700 px-3 py-1.5 rounded-full text-xs font-medium flex items-center whitespace-nowrap">
+                <i class="fas fa-handshake mr-1"></i> 车费住宿均摊
+            </div>
+            <div class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs font-medium flex items-center whitespace-nowrap">
+                <i class="fas fa-map-marked-alt mr-1"></i> 智能出行规划
             </div>
         </div>
 
-        <div id="view-ai-loading" class="page flex flex-col items-center justify-center h-full bg-white relative z-40 hidden">
-            <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                <i class="fas fa-robot text-purple-600 text-4xl"></i>
-            </div>
-            <h2 class="text-lg font-bold text-gray-900 mb-2">StarGo AI 正在规划</h2>
-            <div class="text-sm text-gray-500 space-y-2 text-center" id="loading-steps">
-                <p class="animate-bounce">整合大麦票务数据...</p>
-                <p class="text-transparent">挖掘小红书优质路线...</p>
-                <p class="text-transparent">匹配最优住宿方案...</p>
-            </div>
-        </div>
-
-        <div id="view-itinerary" class="page hide-scrollbar bg-gray-50">
-            <div class="bg-white px-5 pt-14 pb-4 sticky top-0 z-30 shadow-sm">
-                <div class="flex items-center justify-between mb-2">
-                    <i class="fas fa-arrow-left text-gray-600" onclick="switchTab('view-home')"></i>
-                    <h1 class="font-bold text-gray-900">行程详情</h1>
-                    <i class="fas fa-share-square text-gray-600"></i>
-                </div>
-                <h2 class="text-lg font-bold mt-3">山羊皮 Suede 香港站</h2>
-                <div class="flex space-x-2 mt-2">
-                    <span class="bg-purple-100 text-purple-700 text-[10px] px-2 py-1 rounded font-medium">省时优先</span>
-                    <span class="bg-gray-100 text-gray-600 text-[10px] px-2 py-1 rounded font-medium">含住宿</span>
-                </div>
-            </div>
-
-            <div class="px-6 py-6">
-                <div class="relative border-l-2 border-purple-200 pb-8 pl-6">
-                    <div class="absolute w-4 h-4 bg-purple-500 rounded-full -left-[9px] top-0 border-4 border-white shadow"></div>
-                    <div class="text-xs text-gray-500 mb-1 font-medium">4月11日 14:00</div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-bold text-gray-900 text-sm">高铁出发</h3>
-                            <span class="text-xs text-gray-400">约 1h</span>
-                        </div>
-                        <p class="text-xs text-gray-600">深圳北站 <i class="fas fa-long-arrow-alt-right mx-1"></i> 香港西九龙站</p>
-                        <div class="mt-3 bg-gray-50 rounded p-2 text-[10px] text-gray-500 flex justify-between items-center">
-                            <span>建议车次：G5615 (14:05开)</span>
-                            <button class="text-purple-600">去购票</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="relative border-l-2 border-purple-200 pb-8 pl-6">
-                    <div class="absolute w-4 h-4 bg-blue-500 rounded-full -left-[9px] top-0 border-4 border-white shadow"></div>
-                    <div class="text-xs text-gray-500 mb-1 font-medium">15:30</div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-bold text-gray-900 text-sm">办理入住</h3>
-                            <span class="text-xs text-purple-600 font-medium">优选推荐</span>
-                        </div>
-                        <p class="text-xs text-gray-600 mb-2">香港尖沙咀皇悦酒店 (距场馆 1.2km)</p>
-                        <div class="flex space-x-2">
-                            <span class="border border-gray-200 text-gray-500 text-[10px] px-1.5 py-0.5 rounded">支持免费取消</span>
-                            <span class="border border-gray-200 text-gray-500 text-[10px] px-1.5 py-0.5 rounded">评价 4.5</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="relative pl-6">
-                    <div class="absolute w-4 h-4 bg-pink-500 rounded-full -left-[9px] top-0 border-4 border-white shadow"></div>
-                    <div class="text-xs text-gray-500 mb-1 font-medium">18:00 - 入场</div>
-                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl shadow-sm border border-purple-100">
-                        <h3 class="font-bold text-gray-900 text-sm mb-2">到达西九安盛竹翠公园</h3>
-                        <div class="space-y-2">
-                            <div class="flex items-center text-xs text-gray-700 bg-white p-2 rounded">
-                                <i class="fas fa-route w-5 text-center text-purple-500"></i>
-                                <span>路线：从酒店步行约 15 分钟即可直达</span>
-                            </div>
-                            <div class="flex items-center text-xs text-gray-700 bg-white p-2 rounded">
-                                <i class="fas fa-suitcase w-5 text-center text-orange-400"></i>
-                                <span>寄存：场馆南门左侧 50 米有共享寄存柜</span>
-                            </div>
-                            <div class="flex items-center text-xs text-gray-700 bg-white p-2 rounded">
-                                <i class="fas fa-flag w-5 text-center text-red-500"></i>
-                                <span>应援：西入口广场为粉丝应援物发放点</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="flex-1 overflow-y-auto hide-scrollbar px-5 py-4 pb-20">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">热门现场组队中</h2>
             
-            <div class="px-6 pb-6">
-                <button class="w-full bg-black text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform" onclick="switchTab('view-social')">
-                    带着行程去找搭子
+            <div v-for="item in events" :key="item.id" @click="goToDetail(item)" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4 active:scale-[0.98] transition-transform cursor-pointer">
+                <div class="h-36 relative">
+                    <img :src="item.image" class="w-full h-full object-cover" alt="event poster">
+                    <div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                        {{ item.category }}
+                    </div>
+                    <div class="absolute bottom-2 right-2 bg-white/90 backdrop-blur text-purple-700 text-[10px] font-bold px-2 py-1 rounded-full shadow-sm flex items-center">
+                        <i class="fas fa-fire text-orange-500 mr-1"></i> {{ item.partnerCount }}人在找搭子
+                    </div>
+                </div>
+                <div class="p-4">
+                    <h3 class="font-bold text-gray-900 text-base leading-tight mb-2">{{ item.title }}</h3>
+                    <div class="text-xs text-gray-500 space-y-1 mb-3">
+                        <p><i class="far fa-calendar-alt w-4 text-center"></i> {{ item.date }}</p>
+                        <p class="truncate"><i class="fas fa-map-marker-alt w-4 text-center"></i> {{ item.location }}</p>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-gray-50">
+                        <div class="flex -space-x-2">
+                            <img src="https://ui-avatars.com/api/?name=A&background=random" class="w-6 h-6 rounded-full border border-white">
+                            <img src="https://ui-avatars.com/api/?name=B&background=random" class="w-6 h-6 rounded-full border border-white">
+                            <img src="https://ui-avatars.com/api/?name=C&background=random" class="w-6 h-6 rounded-full border border-white">
+                            <div class="w-6 h-6 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[8px] text-gray-500">+{{item.groupMembers}}</div>
+                        </div>
+                        <button class="bg-purple-100 text-purple-700 font-medium text-xs px-3 py-1.5 rounded-lg">
+                            去组队 <i class="fas fa-chevron-right text-[10px] ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 shrink-0 z-20">
+            <div class="flex flex-col items-center text-primary">
+                <i class="fas fa-compass text-xl mb-1"></i>
+                <span class="text-[10px] font-medium">发现</span>
+            </div>
+            <div class="flex flex-col items-center text-gray-400">
+                <i class="fas fa-ticket-alt text-xl mb-1"></i>
+                <span class="text-[10px] font-medium">我的票夹</span>
+            </div>
+            <div class="flex flex-col items-center text-gray-400 relative">
+                <div class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                <i class="fas fa-comments text-xl mb-1"></i>
+                <span class="text-[10px] font-medium">消息</span>
+            </div>
+            <div class="flex flex-col items-center text-gray-400">
+                <i class="fas fa-user text-xl mb-1"></i>
+                <span class="text-[10px] font-medium">我的</span>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="currentView === 'detail' && currentEvent" class="flex flex-col h-full w-full bg-gray-50 absolute top-0 left-0 z-30">
+        <div class="absolute top-0 w-full p-4 pt-12 flex justify-between items-center z-40 bg-gradient-to-b from-black/60 to-transparent text-white">
+            <button @click="goBack" class="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                <i class="fas fa-chevron-left text-sm"></i>
+            </button>
+            <div class="text-sm font-bold text-shadow">现场组队</div>
+            <button class="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                <i class="fas fa-share text-sm"></i>
+            </button>
+        </div>
+
+        <div class="h-56 shrink-0 relative">
+            <img :src="currentEvent.image" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/40 to-transparent"></div>
+            <div class="absolute bottom-0 w-full p-5 text-white">
+                <div class="bg-primary/80 backdrop-blur text-[10px] px-2 py-0.5 rounded inline-block mb-2">{{ currentEvent.category }}</div>
+                <h2 class="text-xl font-bold leading-tight mb-1">{{ currentEvent.title }}</h2>
+                <p class="text-xs opacity-80"><i class="fas fa-map-marker-alt mr-1"></i>{{ currentEvent.location }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-t-3xl -mt-4 relative z-20 flex px-2 pt-2 border-b border-gray-100 shrink-0 shadow-sm">
+            <button @click="activeTab = 'info'" :class="['flex-1 py-3 text-sm font-medium transition-colors border-b-2', activeTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500']">
+                演出详情
+            </button>
+            <button @click="activeTab = 'chat'" :class="['flex-1 py-3 text-sm font-medium transition-colors border-b-2 relative', activeTab === 'chat' ? 'border-primary text-primary' : 'border-transparent text-gray-500']">
+                专属群聊
+                <span class="absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            </button>
+            <button @click="activeTab = 'partner'" :class="['flex-1 py-3 text-sm font-medium transition-colors border-b-2', activeTab === 'partner' ? 'border-primary text-primary' : 'border-transparent text-gray-500']">
+                找搭子
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto hide-scrollbar relative bg-gray-50">
+            
+            <div v-show="activeTab === 'info'" class="p-5 space-y-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50">
+                    <h3 class="font-bold text-gray-800 mb-3 border-l-4 border-primary pl-2 text-sm">基础信息</h3>
+                    <div class="space-y-3 text-xs text-gray-600">
+                        <div class="flex"><span class="w-16 text-gray-400">举办时间</span><span class="flex-1 font-medium text-gray-800">{{ currentEvent.date }}</span></div>
+                        <div class="flex"><span class="w-16 text-gray-400">具体场馆</span><span class="flex-1 font-medium text-gray-800">{{ currentEvent.location }}</span></div>
+                        <div class="flex"><span class="w-16 text-gray-400">开票时间</span><span class="flex-1 text-secondary font-medium">即将开售 / 售票中</span></div>
+                        <div class="flex items-center">
+                            <span class="w-16 text-gray-400">购票渠道</span>
+                            <a href="#" class="bg-gray-100 px-2 py-1 rounded text-gray-700 flex items-center hover:bg-gray-200">大麦网 <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50">
+                    <h3 class="font-bold text-gray-800 mb-2 border-l-4 border-primary pl-2 text-sm">演出简介</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">
+                        本场活动汇聚顶尖制作团队，旨在为观众带来沉浸式的视听盛宴。StarGo 专属服务已开启：您可以在“找搭子”版块发起拼车、拼房需求，通过实名及购票双重验证，安全高效结伴同行。
+                    </p>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'chat'" class="flex flex-col h-full relative">
+                <div class="bg-green-50 border-b border-green-100 p-2 flex items-start px-4 shrink-0 shadow-sm z-10">
+                    <i class="fas fa-shield-check text-green-600 mt-0.5 mr-2"></i>
+                    <div class="text-[10px] text-green-800">
+                        <span class="font-bold">✅ 纯粉验票群：</span>您已通过 [大麦网] 购票验证。本群严禁黄牛、加价转票，违者永久封号。
+                    </div>
+                </div>
+
+                <div class="flex-1 p-4 overflow-y-auto space-y-4" id="chat-container">
+                    <div class="text-center text-[10px] text-gray-400 my-2">昨天 18:30</div>
+                    
+                    <div v-for="msg in chatMessages" :key="msg.id" class="flex w-full" :class="msg.isMe ? 'justify-end' : 'justify-start'">
+                        <div class="flex max-w-[80%]" :class="msg.isMe ? 'flex-row-reverse' : 'flex-row'">
+                            <img :src="msg.avatar" class="w-8 h-8 rounded-full shrink-0 border border-gray-200 shadow-sm" :class="msg.isMe ? 'ml-2' : 'mr-2'">
+                            <div class="flex flex-col" :class="msg.isMe ? 'items-end' : 'items-start'">
+                                <span v-if="!msg.isMe" class="text-[10px] text-gray-500 mb-1 ml-1 flex items-center">
+                                    {{ msg.user }} <i v-if="msg.verified" class="fas fa-check-circle text-blue-500 ml-1 text-[8px]" title="已验票"></i>
+                                </span>
+                                <div class="p-2.5 rounded-2xl text-sm message-bubble shadow-sm"
+                                     :class="msg.isMe ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100'">
+                                    {{ msg.text }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-3 border-t border-gray-200 shrink-0 flex items-center space-x-2 pb-6">
+                    <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center shrink-0">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="发送消息参与群聊..." 
+                           class="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm outline-none focus:ring-1 focus:ring-primary transition-all">
+                    <button @click="sendMessage" class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0 transition-transform active:scale-90" :class="{'opacity-50': !newMessage}">
+                        <i class="fas fa-paper-plane text-xs -ml-0.5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'partner'" class="p-4 relative min-h-full pb-24">
+                <div class="space-y-3">
+                    <div v-for="partner in partners" :key="partner.id" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center space-x-2">
+                                <img :src="partner.avatar" class="w-10 h-10 rounded-full">
+                                <div>
+                                    <div class="font-bold text-sm text-gray-900 flex items-center">
+                                        {{ partner.user }} 
+                                        <i class="fas fa-check-circle text-blue-500 ml-1 text-[10px]"></i>
+                                    </div>
+                                    <div class="text-[10px] text-gray-500">{{ partner.gender }} · {{ partner.age }}</div>
+                                </div>
+                            </div>
+                            <div class="px-2 py-1 rounded text-[10px] font-bold"
+                                 :class="{
+                                     'bg-blue-50 text-blue-600 border border-blue-100': partner.type === '拼车',
+                                     'bg-pink-50 text-pink-600 border border-pink-100': partner.type === '拼房',
+                                     'bg-purple-50 text-purple-600 border border-purple-100': partner.type === '现场面基'
+                                 }">
+                                {{ partner.type }}
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                            <p class="text-xs font-bold text-gray-800 mb-1">{{ partner.title }}</p>
+                            <p class="text-[11px] text-gray-600 leading-relaxed">{{ partner.desc }}</p>
+                        </div>
+
+                        <div v-if="partner.costStr" class="flex items-center text-[10px] text-gray-500 mb-3 bg-orange-50 px-2 py-1.5 rounded text-orange-700 font-medium">
+                            <i class="fas fa-wallet mr-1.5"></i> 费用预算：{{ partner.costStr }}
+                        </div>
+
+                        <div class="flex space-x-2">
+                            <button class="flex-1 py-1.5 border border-primary text-primary text-xs font-medium rounded-lg hover:bg-purple-50 transition-colors">查看主页</button>
+                            <button class="flex-1 py-1.5 bg-primary text-white text-xs font-medium rounded-lg shadow hover:bg-purple-700 transition-colors">立即沟通</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button @click="showPublishModal = true" class="absolute bottom-6 right-4 w-12 h-12 bg-secondary text-white rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-pink-600 transition-transform active:scale-95 z-10">
+                    <i class="fas fa-edit"></i>
                 </button>
             </div>
         </div>
+    </div>
 
-        <div id="view-social" class="page hide-scrollbar bg-gray-50">
-            <div class="bg-white px-5 pt-14 pb-2 sticky top-0 z-30 shadow-sm border-b border-gray-100">
-                <h1 class="font-bold text-gray-900 text-lg mb-3">交流与组队</h1>
-                <div class="flex space-x-6">
-                    <button class="pb-2 border-b-2 border-purple-600 text-purple-600 font-bold text-sm" id="tab-btn-match" onclick="toggleSocialTab('match')">找搭子</button>
-                    <button class="pb-2 border-b-2 border-transparent text-gray-500 font-medium text-sm" id="tab-btn-chat" onclick="toggleSocialTab('chat')">聊天室</button>
-                </div>
+    <div v-if="showPublishModal" class="absolute inset-0 bg-black/60 z-50 flex items-end justify-center slide-enter-active">
+        <div class="bg-white w-full rounded-t-3xl p-5 pb-8 flex flex-col max-h-[80%]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-gray-800">发布搭子招募</h3>
+                <button @click="showPublishModal = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
-
-            <div id="social-content-match" class="p-4">
-                <div class="flex space-x-2 mb-4 overflow-x-auto hide-scrollbar">
-                    <span class="bg-black text-white text-xs px-4 py-1.5 rounded-full whitespace-nowrap">全部需求</span>
-                    <span class="bg-gray-100 text-gray-600 text-xs px-4 py-1.5 rounded-full whitespace-nowrap">拼车</span>
-                    <span class="bg-gray-100 text-gray-600 text-xs px-4 py-1.5 rounded-full whitespace-nowrap">拼房</span>
-                    <span class="bg-gray-100 text-gray-600 text-xs px-4 py-1.5 rounded-full whitespace-nowrap">现场面基</span>
-                </div>
-
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-3">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center space-x-3">
-                            <img src="https://ui-avatars.com/api/?name=C&background=e2e8f0" class="w-10 h-10 rounded-full" alt="User">
-                            <div>
-                                <div class="flex items-center space-x-1">
-                                    <span class="font-bold text-sm text-gray-900">佛系小陈</span>
-                                    <i class="fas fa-check-circle text-blue-500 text-[10px]" title="实名+验票"></i>
-                                </div>
-                                <div class="text-[10px] text-gray-500">男 | 20后 | 匹配度 95%</div>
-                            </div>
-                        </div>
-                        <span class="bg-purple-100 text-purple-600 text-[10px] font-bold px-2 py-1 rounded">拼车</span>
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded-lg mb-3">
-                        <p class="text-xs text-gray-800 font-medium mb-1">标题：4.11 西九龙高铁站找2人拼车去场馆</p>
-                        <p class="text-[10px] text-gray-500">15:00 左右西九龙出发，AA打车，已有2人缺2人。</p>
-                    </div>
+            
+            <div class="overflow-y-auto flex-1 hide-scrollbar space-y-4 pr-1">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">需求类型</label>
                     <div class="flex space-x-2">
-                        <button class="flex-1 bg-purple-50 text-purple-600 text-xs font-medium py-2 rounded-lg">查看 AI 行程</button>
-                        <button class="flex-1 bg-black text-white text-xs font-medium py-2 rounded-lg">私信打招呼</button>
+                        <button v-for="t in ['拼车', '拼房', '现场面基']" :key="t" @click="newPartnerForm.type = t"
+                                :class="['px-3 py-1.5 rounded-lg text-xs font-medium border', newPartnerForm.type === t ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200']">
+                            {{ t }}
+                        </button>
                     </div>
                 </div>
-
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-3">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center space-x-3">
-                            <img src="https://ui-avatars.com/api/?name=L&background=fce7f3&color=db2777" class="w-10 h-10 rounded-full" alt="User">
-                            <div>
-                                <div class="flex items-center space-x-1">
-                                    <span class="font-bold text-sm text-gray-900">Lily_</span>
-                                    <i class="fas fa-check-circle text-blue-500 text-[10px]"></i>
-                                </div>
-                                <div class="text-[10px] text-gray-500">女 | 不吸烟 | 匹配度 88%</div>
-                            </div>
-                        </div>
-                        <span class="bg-pink-100 text-pink-600 text-[10px] font-bold px-2 py-1 rounded">拼房</span>
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded-lg mb-3">
-                        <p class="text-xs text-gray-800 font-medium mb-1">标题：找1女拼尖沙咀周边酒店</p>
-                        <p class="text-[10px] text-gray-500">4.11一晚，预算人均500左右，看完演出结伴回酒店。</p>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button class="flex-1 bg-purple-50 text-purple-600 text-xs font-medium py-2 rounded-lg">查看 AI 行程</button>
-                        <button class="flex-1 bg-black text-white text-xs font-medium py-2 rounded-lg">私信打招呼</button>
-                    </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">出发/所在城市</label>
+                    <input v-model="newPartnerForm.city" type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="例如：广州">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">标题及需求说明</label>
+                    <textarea v-model="newPartnerForm.desc" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="说明你的座位区、出发时间或住宿偏好..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">费用均摊说明 (选填)</label>
+                    <input v-model="newPartnerForm.cost" type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="例如：AA打车，约50元/人">
                 </div>
             </div>
-
-            <div id="social-content-chat" class="p-4 hidden">
-                <div class="bg-gradient-to-r from-purple-600 to-pink-500 p-4 rounded-2xl shadow text-white mb-4 relative overflow-hidden">
-                    <i class="fas fa-shield-alt absolute -right-4 -bottom-4 text-6xl opacity-20"></i>
-                    <h3 class="font-bold text-base mb-1">官方验票群组</h3>
-                    <p class="text-xs opacity-90 mb-3">自动拦截黄牛与广告，纯粹粉丝交流</p>
-                    <button class="bg-white text-purple-600 text-xs font-bold px-4 py-1.5 rounded-full">一键认证进群</button>
-                </div>
-
-                <div class="space-y-3">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center relative">
-                                <i class="fas fa-ticket-alt text-purple-500"></i>
-                                <span class="absolute -top-1 -right-1 flex h-3 w-3">
-                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                  <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                </span>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-sm text-gray-900 flex items-center">Suede HK 验票内场组 <i class="fas fa-check-circle text-blue-500 text-[10px] ml-1"></i></h4>
-                                <p class="text-xs text-gray-500 truncate w-40">佛系小陈: 官方发了应援物尺寸要求...</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-[10px] text-gray-400 mb-1">刚刚</div>
-                            <div class="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full">350人在线</div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                                <i class="fas fa-comments text-gray-500"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-sm text-gray-900">Suede HK 意向交流群</h4>
-                                <p class="text-xs text-gray-500 truncate w-40">用户A: 谁知道第二波放票是什么时候？</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-[10px] text-gray-400 mb-1">10分钟前</div>
-                            <div class="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full">1200人</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-profile" class="page hide-scrollbar">
-            <div class="bg-white px-5 pt-16 pb-6 shadow-sm mb-2 rounded-b-3xl">
-                <div class="flex items-center space-x-4 mb-6">
-                    <img src="https://ui-avatars.com/api/?name=User&background=000&color=fff" class="w-16 h-16 rounded-full shadow" alt="Avatar">
-                    <div class="flex-1">
-                        <h2 class="font-bold text-xl text-gray-900 mb-1">User_8492 <i class="fas fa-edit text-gray-400 text-sm ml-1"></i></h2>
-                        <div class="flex space-x-2">
-                            <span class="bg-blue-50 text-blue-600 border border-blue-200 text-[10px] px-2 py-0.5 rounded flex items-center"><i class="fas fa-shield-alt mr-1"></i>已实名</span>
-                            <span class="bg-yellow-50 text-yellow-600 border border-yellow-200 text-[10px] px-2 py-0.5 rounded flex items-center"><i class="fas fa-star mr-1"></i>信用分 98</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex justify-around text-center border-t border-gray-100 pt-4 mt-2">
-                    <div>
-                        <div class="font-bold text-lg text-gray-900">5</div>
-                        <div class="text-xs text-gray-500">已参演</div>
-                    </div>
-                    <div>
-                        <div class="font-bold text-lg text-gray-900">12</div>
-                        <div class="text-xs text-gray-500">行程单</div>
-                    </div>
-                    <div>
-                        <div class="font-bold text-lg text-gray-900">3</div>
-                        <div class="text-xs text-gray-500">智能回顾</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="px-5 space-y-4">
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-sm text-gray-900 mb-4">我的服务</h3>
-                    <div class="grid grid-cols-4 gap-4 text-center">
-                        <div class="flex flex-col items-center">
-                            <div class="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mb-1 text-lg"><i class="fas fa-ticket-alt"></i></div>
-                            <span class="text-[10px] text-gray-600">购票认证</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1 text-lg"><i class="fas fa-sliders-h"></i></div>
-                            <span class="text-[10px] text-gray-600">出行偏好</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="w-10 h-10 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center mb-1 text-lg"><i class="fas fa-video"></i></div>
-                            <span class="text-[10px] text-gray-600">生成回顾</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-1 text-lg"><i class="fas fa-box-open"></i></div>
-                            <span class="text-[10px] text-gray-600">工具箱</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-4 shadow-sm text-white flex justify-between items-center">
-                    <div>
-                        <h3 class="font-bold text-sm mb-1 text-[#facc15]">开通黑金会员</h3>
-                        <p class="text-[10px] text-gray-300">尊享专属 AI 顾问与抢先匹配特权</p>
-                    </div>
-                    <button class="bg-[#facc15] text-gray-900 text-xs font-bold px-3 py-1.5 rounded-full">立即开通</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 z-50">
-            <button class="nav-btn flex flex-col items-center text-purple-600 w-16" onclick="switchTab('view-home', this)">
-                <i class="fas fa-compass text-xl mb-1"></i>
-                <span class="text-[10px] font-medium">首页</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center text-gray-400 w-16" onclick="switchTab('view-itinerary', this)">
-                <i class="fas fa-route text-xl mb-1"></i>
-                <span class="text-[10px] font-medium">行程</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center text-gray-400 w-16" onclick="switchTab('view-social', this)">
-                <i class="fas fa-user-friends text-xl mb-1"></i>
-                <span class="text-[10px] font-medium">找搭子</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center text-gray-400 w-16" onclick="switchTab('view-profile', this)">
-                <i class="fas fa-user text-xl mb-1"></i>
-                <span class="text-[10px] font-medium">我的</span>
+            
+            <button @click="submitPartner" class="w-full bg-primary text-white font-bold py-3 rounded-xl mt-4 shadow-md active:scale-95 transition-transform">
+                实名发布
             </button>
         </div>
     </div>
 
-    <script>
-        // 底部导航切换逻辑
-        function switchTab(viewId, btnElement = null) {
-            // 隐藏所有页面
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-            // 显示目标页面
-            document.getElementById(viewId).classList.add('active');
+</div>
 
-            // 如果是通过底部按钮点击的，更新图标颜色状态
-            if (btnElement) {
-                document.querySelectorAll('.nav-btn').forEach(btn => {
-                    btn.classList.remove('text-purple-600');
-                    btn.classList.add('text-gray-400');
-                });
-                btnElement.classList.remove('text-gray-400');
-                btnElement.classList.add('text-purple-600');
-            } else {
-                // 如果是代码触发跳转，手动同步底部状态
-                const btnIndexMap = {
-                    'view-home': 0,
-                    'view-itinerary': 1,
-                    'view-social': 2,
-                    'view-profile': 3
-                };
-                const index = btnIndexMap[viewId];
-                if (index !== undefined) {
-                    const btns = document.querySelectorAll('.nav-btn');
-                    btns.forEach(b => b.classList.replace('text-purple-600', 'text-gray-400'));
-                    btns[index].classList.replace('text-gray-400', 'text-purple-600');
+<script>
+    const { createApp } = Vue;
+
+    createApp({
+        data() {
+            return {
+                currentView: 'home', // 'home', 'detail'
+                activeTab: 'chat', // 'info', 'chat', 'partner'
+                selectedEvent: null,
+                showPublishModal: false,
+                newMessage: '',
+                // 生成多样化的赛事/演出数据，使用高质量图片
+                events: [
+                    {
+                        id: 1,
+                        title: "Taylor Swift The Eras Tour 时代巡回演唱会 - 东京站",
+                        category: "演唱会",
+                        date: "2024.11.20 - 11.23",
+                        location: "东京巨蛋 (Tokyo Dome)",
+                        partnerCount: 1250,
+                        groupMembers: 3500,
+                        image: "https://images.unsplash.com/photo-1540039155733-d71efd44bd1b?auto=format&fit=crop&w=600&q=80"
+                    },
+                    {
+                        id: 2,
+                        title: "2024英雄联盟全球总决赛 (S14) 冠亚军决赛",
+                        category: "电竞赛事",
+                        date: "2024.11.02",
+                        location: "伦敦 O2 体育馆",
+                        partnerCount: 890,
+                        groupMembers: 2100,
+                        image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80"
+                    },
+                    {
+                        id: 3,
+                        title: "周杰伦「嘉年华」世界巡回演唱会 - 杭州站",
+                        category: "演唱会",
+                        date: "2024.04.18 - 04.21",
+                        location: "杭州奥体中心体育场",
+                        partnerCount: 3200,
+                        groupMembers: 5000,
+                        image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=600&q=80"
+                    },
+                    {
+                        id: 4,
+                        title: "上海劳力士大师赛 (ATP1000) 决赛",
+                        category: "体育赛事",
+                        date: "2024.10.13",
+                        location: "上海旗忠网球中心",
+                        partnerCount: 340,
+                        groupMembers: 1200,
+                        image: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=600&q=80"
+                    },
+                    {
+                        id: 5,
+                        title: "草莓音乐节 Strawberry Music Festival - 北京站",
+                        category: "音乐节",
+                        date: "2024.05.01 - 05.03",
+                        location: "北京世园公园飞行营地",
+                        partnerCount: 2100,
+                        groupMembers: 4300,
+                        image: "https://images.unsplash.com/photo-1470229722913-7c092bba1a8d?auto=format&fit=crop&w=600&q=80"
+                    },
+                    {
+                        id: 6,
+                        title: "原版音乐剧《剧院魅影》The Phantom of the Opera",
+                        category: "话剧音乐剧",
+                        date: "2024.07.02 - 08.04",
+                        location: "上海大剧院",
+                        partnerCount: 156,
+                        groupMembers: 800,
+                        image: "https://images.unsplash.com/photo-1507676184212-d0330a15233c?auto=format&fit=crop&w=600&q=80"
+                    },
+                    {
+                        id: 7,
+                        title: "UFC 格斗之夜：中国赛",
+                        category: "体育赛事",
+                        date: "2024.12.09",
+                        location: "上海东方体育中心",
+                        partnerCount: 420,
+                        groupMembers: 950,
+                        image: "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=600&q=80"
+                    },
+                    {
+                        id: 8,
+                        title: "ChinaJoy 中国国际数码互动娱乐展览会",
+                        category: "漫展展览",
+                        date: "2024.07.26 - 07.29",
+                        location: "上海新国际博览中心",
+                        partnerCount: 4500,
+                        groupMembers: 8000,
+                        image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80"
+                    }
+                ],
+                // 模拟聊天数据
+                chatMessages: [
+                    { id: 1, user: '票务小助手', avatar: 'https://ui-avatars.com/api/?name=官&background=f3f4f6&color=6D28D9', text: '欢迎加入本场演出的官方验票群！大家可以在这里交流攻略、找搭子。', isMe: false, verified: true },
+                    { id: 2, user: '看海的猫', avatar: 'https://ui-avatars.com/api/?name=猫&background=random', text: '内场 VIP 1区的朋友有吗？举个手！', isMe: false, verified: true },
+                    { id: 3, user: '阿杰_Jay', avatar: 'https://ui-avatars.com/api/?name=杰&background=random', text: '我买了看台票，请问大家场馆附近有什么好吃的推荐吗？看完打算吃个宵夜。', isMe: false, verified: true },
+                    { id: 4, user: 'Lily', avatar: 'https://ui-avatars.com/api/?name=L&background=random', text: '我在找搭子版块发了拼车贴，从高铁站出发的，差一个人，AA车费大概一人30，大家看下！', isMe: false, verified: true }
+                ],
+                // 模拟搭子数据
+                partners: [
+                    { id: 1, user: '陈大仙', gender: '男', age: '95后', type: '拼车', title: '高铁站拼车直达场馆', desc: '下午3点高铁站集合，打专车直达场馆，避开地铁早高峰。已有2人，再找2个同好。', costStr: 'AA打车，预估 ¥40/人', avatar: 'https://ui-avatars.com/api/?name=陈&background=random' },
+                    { id: 2, user: '冰摇桃桃', gender: '女', age: '00后', type: '拼房', title: '找一女生拼场馆附近酒店', desc: '已经定了全季酒店（距离场馆步行15分钟），大床房。限女生，不打呼噜，看完一起回酒店比较安全。', costStr: '房费均摊 ¥250/晚', avatar: 'https://ui-avatars.com/api/?name=桃&background=random' },
+                    { id: 3, user: '野生摄影师', gender: '男', age: '90后', type: '现场面基', title: '内场前排找互拍搭子', desc: '带了单反，找内场的朋友互相帮忙拍几张入场打卡照，顺便一起领官方应援物。', costStr: '', avatar: 'https://ui-avatars.com/api/?name=影&background=random' }
+                ],
+                // 表单状态
+                newPartnerForm: {
+                    type: '拼车',
+                    city: '',
+                    desc: '',
+                    cost: ''
                 }
             }
-        }
-
-        // 模拟 AI 生成过程
-        function showAILoader(keyword = '') {
-            // 显示加载页
-            switchTab('view-ai-loading');
-            
-            const steps = document.getElementById('loading-steps').children;
-            let currentStep = 0;
-            
-            // 简单的文字动画效果
-            const interval = setInterval(() => {
-                if (currentStep > 0) {
-                    steps[currentStep-1].classList.remove('text-purple-600', 'font-bold', 'animate-bounce');
-                    steps[currentStep-1].classList.add('text-gray-500');
+        },
+        computed: {
+            currentEvent() {
+                return this.selectedEvent;
+            }
+        },
+        methods: {
+            goToDetail(item) {
+                this.selectedEvent = item;
+                this.currentView = 'detail';
+                this.activeTab = 'chat'; // 默认进入群聊
+                this.$nextTick(() => {
+                    this.scrollToBottom();
+                });
+            },
+            goBack() {
+                this.currentView = 'home';
+                this.selectedEvent = null;
+            },
+            sendMessage() {
+                if (!this.newMessage.trim()) return;
+                
+                this.chatMessages.push({
+                    id: Date.now(),
+                    user: '我',
+                    avatar: 'https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9',
+                    text: this.newMessage,
+                    isMe: true,
+                    verified: true
+                });
+                
+                this.newMessage = '';
+                this.$nextTick(() => {
+                    this.scrollToBottom();
+                });
+            },
+            scrollToBottom() {
+                const container = document.getElementById('chat-container');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            },
+            submitPartner() {
+                if (!this.newPartnerForm.desc) {
+                    alert('请填写需求说明');
+                    return;
                 }
                 
-                if (currentStep < steps.length) {
-                    steps[currentStep].classList.remove('text-transparent');
-                    steps[currentStep].classList.add('text-purple-600', 'font-bold', 'animate-bounce');
-                    currentStep++;
-                } else {
-                    clearInterval(interval);
-                    // 模拟网络请求延迟后跳转至行程详情页
-                    setTimeout(() => {
-                        switchTab('view-itinerary');
-                        // 重置加载文本样式以便下次使用
-                        Array.from(steps).forEach((step, idx) => {
-                            step.className = idx === 0 ? "animate-bounce text-purple-600 font-bold" : "text-transparent";
-                        });
-                    }, 800);
-                }
-            }, 800);
-        }
-
-        // 社交页面内部的 Tab 切换逻辑 (找搭子 vs 聊天室)
-        function toggleSocialTab(tabName) {
-            const btnMatch = document.getElementById('tab-btn-match');
-            const btnChat = document.getElementById('tab-btn-chat');
-            const contentMatch = document.getElementById('social-content-match');
-            const contentChat = document.getElementById('social-content-chat');
-
-            if (tabName === 'match') {
-                btnMatch.className = "pb-2 border-b-2 border-purple-600 text-purple-600 font-bold text-sm";
-                btnChat.className = "pb-2 border-b-2 border-transparent text-gray-500 font-medium text-sm";
-                contentMatch.classList.remove('hidden');
-                contentChat.classList.add('hidden');
-            } else {
-                btnChat.className = "pb-2 border-b-2 border-purple-600 text-purple-600 font-bold text-sm";
-                btnMatch.className = "pb-2 border-b-2 border-transparent text-gray-500 font-medium text-sm";
-                contentChat.classList.remove('hidden');
-                contentMatch.classList.add('hidden');
+                this.partners.unshift({
+                    id: Date.now(),
+                    user: '我',
+                    gender: '保密',
+                    age: '00后',
+                    type: this.newPartnerForm.type,
+                    title: this.newPartnerForm.city ? `${this.newPartnerForm.city}出发求组队` : '发布了新需求',
+                    desc: this.newPartnerForm.desc,
+                    costStr: this.newPartnerForm.cost,
+                    avatar: 'https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9'
+                });
+                
+                this.showPublishModal = false;
+                this.newPartnerForm = { type: '拼车', city: '', desc: '', cost: '' };
+                this.activeTab = 'partner';
             }
         }
-    </script>
+    }).mount('#app');
+</script>
 </body>
 </html>
