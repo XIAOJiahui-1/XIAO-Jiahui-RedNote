@@ -123,10 +123,23 @@
             </div>
         </div>
 
+        <div class="px-5 pb-2 shrink-0 bg-gray-50 border-b border-gray-200">
+            <div class="flex space-x-5 overflow-x-auto hide-scrollbar">
+                <button v-for="cat in categories" :key="cat"
+                        @click="selectedCategory = selectedCategory === cat ? '全部' : cat"
+                        :class="['whitespace-nowrap text-sm pb-2 border-b-2 font-medium transition-colors',
+                                 selectedCategory === cat
+                                 ? 'border-primary text-primary'
+                                 : 'border-transparent text-gray-500']">
+                    {{ cat }}
+                </button>
+            </div>
+        </div>
+
         <div class="flex-1 overflow-y-auto hide-scrollbar px-5 py-4 pb-20">
             <h2 class="text-lg font-bold text-gray-800 mb-4">热门现场组队中</h2>
             
-            <div v-for="item in events" :key="item.id" @click="goToDetail(item)" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4 active:scale-[0.98] transition-transform cursor-pointer">
+            <div v-for="item in filteredEvents" :key="item.id" @click="goToDetail(item)" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4 active:scale-[0.98] transition-transform cursor-pointer">
                 <div class="h-36 relative">
                     <img :src="item.image" class="w-full h-full object-cover" alt="event poster">
                     <div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
@@ -144,36 +157,95 @@
                     </div>
                     <div class="flex items-center justify-between pt-3 border-t border-gray-50">
                         <div class="flex -space-x-2">
-                            <img src="https://ui-avatars.com/api/?name=A&background=random" class="w-6 h-6 rounded-full border border-white">
-                            <img src="https://ui-avatars.com/api/?name=B&background=random" class="w-6 h-6 rounded-full border border-white">
-                            <img src="https://ui-avatars.com/api/?name=C&background=random" class="w-6 h-6 rounded-full border border-white">
-                            <div class="w-6 h-6 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[8px] text-gray-500">+{{item.groupMembers}}</div>
+                            </div>
+                        <div class="flex space-x-2">
+                            <button @click.stop="startAIPlan(item)" class="bg-blue-50 text-blue-600 font-medium text-xs px-3 py-1.5 rounded-lg border border-blue-100 flex items-center hover:bg-blue-100">
+                                <i class="fas fa-robot mr-1"></i> AI规划
+                            </button>
+                            <button class="bg-purple-100 text-purple-700 font-medium text-xs px-3 py-1.5 rounded-lg">
+                                去组队 <i class="fas fa-chevron-right text-[10px] ml-1"></i>
+                            </button>
                         </div>
-                        <button class="bg-purple-100 text-purple-700 font-medium text-xs px-3 py-1.5 rounded-lg">
-                            去组队 <i class="fas fa-chevron-right text-[10px] ml-1"></i>
-                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 shrink-0 z-20">
-            <div class="flex flex-col items-center text-primary">
-                <i class="fas fa-compass text-xl mb-1"></i>
-                <span class="text-[10px] font-medium">发现</span>
+
+    </div>
+
+    <div v-show="currentView === 'tickets'" class="flex flex-col h-full w-full bg-gray-50 pt-12 px-5">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">我的票夹</h2>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 relative overflow-hidden">
+            <div class="absolute right-[-20px] top-[10px] bg-green-500 text-white text-[10px] font-bold py-1 px-8 rotate-45">已验票</div>
+            <h3 class="font-bold text-gray-900 mb-1">Taylor Swift 时代巡回演唱会</h3>
+            <p class="text-xs text-gray-500 mb-4">东京巨蛋 | 2024.11.20 19:00</p>
+            <div class="flex justify-between items-center border-t border-dashed border-gray-300 pt-3 mt-3">
+                <span class="text-xs text-gray-600 font-medium">内场 VIP 1区 - 12排 5座</span>
+                <button class="bg-primary text-white text-xs px-3 py-1.5 rounded-lg font-bold">查看电子票</button>
             </div>
-            <div class="flex flex-col items-center text-gray-400">
-                <i class="fas fa-ticket-alt text-xl mb-1"></i>
-                <span class="text-[10px] font-medium">我的票夹</span>
+        </div>
+        <div class="mt-8 text-center text-xs text-gray-400">没有更多票面了</div>
+    </div>
+
+    <div v-show="currentView === 'messages'" class="flex flex-col h-full w-full bg-white pt-12">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2 px-5">消息</h2>
+        <div class="flex-1 overflow-y-auto">
+            <div class="flex items-center px-5 py-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer">
+                <img src="https://ui-avatars.com/api/?name=官&background=f3f4f6&color=6D28D9" class="w-12 h-12 rounded-full mr-3">
+                <div class="flex-1">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-sm text-gray-900">Taylor Swift 官方验票群</span>
+                        <span class="text-[10px] text-gray-400">刚刚</span>
+                    </div>
+                    <p class="text-xs text-gray-500 truncate w-56">票务小助手: 欢迎大家加入本群...</p>
+                </div>
             </div>
-            <div class="flex flex-col items-center text-gray-400 relative">
-                <div class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-                <i class="fas fa-comments text-xl mb-1"></i>
-                <span class="text-[10px] font-medium">消息</span>
+            <div class="flex items-center px-5 py-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer">
+                <img src="https://ui-avatars.com/api/?name=桃&background=fce7f3&color=db2777" class="w-12 h-12 rounded-full mr-3 relative">
+                <div class="flex-1">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-sm text-gray-900">冰摇桃桃 (搭子匹配)</span>
+                        <span class="text-[10px] text-gray-400">昨天</span>
+                    </div>
+                    <p class="text-xs text-gray-500 truncate w-56">你好，请问拼房还在找人吗？</p>
+                </div>
+                <div class="w-2 h-2 bg-red-500 rounded-full"></div>
             </div>
-            <div class="flex flex-col items-center text-gray-400">
-                <i class="fas fa-user text-xl mb-1"></i>
-                <span class="text-[10px] font-medium">我的</span>
+        </div>
+    </div>
+
+    <div v-show="currentView === 'profile'" class="flex flex-col h-full w-full bg-gray-50">
+        <div class="bg-gradient-brand pt-16 pb-12 px-5 text-white rounded-b-3xl relative">
+            <div class="flex items-center space-x-4">
+                <img src="https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9" class="w-16 h-16 rounded-full border-4 border-white shadow">
+                <div>
+                    <h2 class="text-xl font-bold">Star User</h2>
+                    <p class="text-xs mt-1 bg-white/20 inline-block px-2 py-0.5 rounded-full"><i class="fas fa-shield-alt mr-1"></i>已实名认证</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="px-5 -mt-6 relative z-10">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 flex justify-around text-center">
+                <div><div class="text-lg font-bold text-gray-800">1</div><div class="text-[10px] text-gray-500">已看现场</div></div>
+                <div><div class="text-lg font-bold text-gray-800">2</div><div class="text-[10px] text-gray-500">发布的搭子</div></div>
+                <div><div class="text-lg font-bold text-gray-800">95</div><div class="text-[10px] text-gray-500">信用评分</div></div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="flex items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer">
+                    <span class="text-sm font-medium text-gray-700"><i class="fas fa-wallet w-6 text-center text-primary"></i> 我的AA账单</span>
+                    <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+                </div>
+                <div class="flex items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer">
+                    <span class="text-sm font-medium text-gray-700"><i class="fas fa-heart w-6 text-center text-secondary"></i> 我的关注</span>
+                    <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+                </div>
+                <div class="flex items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer">
+                    <span class="text-sm font-medium text-gray-700"><i class="fas fa-cog w-6 text-center text-gray-500"></i> 设置</span>
+                    <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+                </div>
             </div>
         </div>
     </div>
@@ -359,6 +431,105 @@
         </div>
     </div>
 
+<div v-if="showAIModal" class="absolute inset-0 bg-black/60 z-50 flex items-end justify-center slide-enter-active">
+        <div class="bg-white w-full rounded-t-3xl p-5 pb-8 flex flex-col max-h-[85%]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-gray-800 flex items-center">
+                    <i class="fas fa-robot text-primary mr-2"></i>AI 智能规划
+                </h3>
+                <button @click="showAIModal = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div v-if="isAILoading" class="flex flex-col items-center justify-center py-12 space-y-4">
+                <i class="fas fa-circle-notch fa-spin text-4xl text-primary"></i>
+                <p class="text-sm text-gray-500">正在为您生成专属出行、住宿与面基方案...</p>
+            </div>
+
+            <div v-else class="overflow-y-auto flex-1 hide-scrollbar space-y-4">
+                <div class="bg-purple-50 p-3 rounded-xl border border-purple-100">
+                    <p class="text-xs text-purple-800 font-bold mb-1">目标：{{ aiTargetEvent?.title }}</p>
+                    <p class="text-[10px] text-purple-600">已结合全网数据为您定制以下方案：</p>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 border-l-4 border-blue-500 pl-2">🚗 最佳路线建议</h4>
+                    <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">建议乘坐高铁至当地主站，出站后转乘地铁直达 <strong>{{ aiTargetEvent?.location }}</strong>。该场馆周边打车易拥堵，地铁出行可节约至少40分钟。</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 border-l-4 border-pink-500 pl-2">🏨 住宿推荐</h4>
+                    <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">距场馆1.5公里内有 3 家高性价比连锁酒店（均价¥200-¥350）。建议预定“全季”或“亚朵”，支持免费取消，方便应对行程变化。</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 border-l-4 border-orange-500 pl-2">🍻 搭子建议</h4>
+                    <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">目前已有 <strong>{{ aiTargetEvent?.partnerCount }}</strong> 人在找搭子，您的预算偏好符合主流。建议在APP内发布【拼房】或【拼车】需求，预计匹配成功率高达 92%。</p>
+                </div>
+            </div>
+            
+            <button v-if="!isAILoading" @click="showAIModal = false" class="w-full bg-primary text-white font-bold py-3 rounded-xl mt-4 shadow-md active:scale-95 transition-transform">
+                一键应用至我的行程
+            </button>
+        </div>
+    </div>
+    <div v-if="showAIModal" class="absolute inset-0 bg-black/60 z-50 flex items-end justify-center slide-enter-active">
+        <div class="bg-white w-full rounded-t-3xl p-5 pb-8 flex flex-col max-h-[85%]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-gray-800 flex items-center">
+                    <i class="fas fa-robot text-primary mr-2"></i>AI 智能规划
+                </h3>
+                <button @click="showAIModal = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div v-if="isAILoading" class="flex flex-col items-center justify-center py-12 space-y-4">
+                <i class="fas fa-circle-notch fa-spin text-4xl text-primary"></i>
+                <p class="text-sm text-gray-500">正在为您生成专属出行、住宿与面基方案...</p>
+            </div>
+
+            <div v-else class="overflow-y-auto flex-1 hide-scrollbar space-y-4">
+                <div class="bg-purple-50 p-3 rounded-xl border border-purple-100">
+                    <p class="text-xs text-purple-800 font-bold mb-1">目标：{{ aiTargetEvent?.title }}</p>
+                    <p class="text-[10px] text-purple-600">已结合全网数据为您定制以下方案：</p>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 border-l-4 border-blue-500 pl-2">🚗 最佳路线建议</h4>
+                    <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">建议乘坐高铁至当地主站，出站后转乘地铁直达 <strong>{{ aiTargetEvent?.location }}</strong>。该场馆周边打车易拥堵，地铁出行可节约至少40分钟。</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 border-l-4 border-pink-500 pl-2">🏨 住宿推荐</h4>
+                    <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">距场馆1.5公里内有 3 家高性价比连锁酒店（均价¥200-¥350）。建议预定“全季”或“亚朵”，支持免费取消，方便应对行程变化。</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 border-l-4 border-orange-500 pl-2">🍻 搭子建议</h4>
+                    <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">目前已有 <strong>{{ aiTargetEvent?.partnerCount }}</strong> 人在找搭子，您的预算偏好符合主流。建议在APP内发布【拼房】或【拼车】需求，预计匹配成功率高达 92%。</p>
+                </div>
+            </div>
+            
+            <button v-if="!isAILoading" @click="showAIModal = false" class="w-full bg-primary text-white font-bold py-3 rounded-xl mt-4 shadow-md active:scale-95 transition-transform">
+                一键应用至我的行程
+            </button>
+        </div>
+    </div>
+
+<div v-if="['home', 'tickets', 'messages', 'profile'].includes(currentView)" class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 shrink-0 z-40">
+        <div @click="currentView = 'home'" :class="['flex flex-col items-center cursor-pointer', currentView === 'home' ? 'text-primary' : 'text-gray-400']">
+            <i class="fas fa-compass text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">发现</span>
+        </div>
+        <div @click="currentView = 'tickets'" :class="['flex flex-col items-center cursor-pointer', currentView === 'tickets' ? 'text-primary' : 'text-gray-400']">
+            <i class="fas fa-ticket-alt text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">我的票夹</span>
+        </div>
+        <div @click="currentView = 'messages'" :class="['flex flex-col items-center cursor-pointer relative', currentView === 'messages' ? 'text-primary' : 'text-gray-400']">
+            <div class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+            <i class="fas fa-comments text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">消息</span>
+        </div>
+        <div @click="currentView = 'profile'" :class="['flex flex-col items-center cursor-pointer', currentView === 'profile' ? 'text-primary' : 'text-gray-400']">
+            <i class="fas fa-user text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">我的</span>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -366,6 +537,11 @@
 
     createApp({
         data() {
+            showAIModal: false,
+            isAILoading: false,
+            aiTargetEvent: null,
+            selectedCategory: '全部',
+            categories: ['全部', '演唱会', '音乐节', '体育赛事', '电竞赛事', '话剧音乐剧', '漫展展览'],
             return {
                 currentView: 'home', // 'home', 'detail'
                 activeTab: 'chat', // 'info', 'chat', 'partner'
@@ -382,7 +558,7 @@
                         location: "东京巨蛋 (Tokyo Dome)",
                         partnerCount: 1250,
                         groupMembers: 3500,
-                        image: "https://images.unsplash.com/photo-1540039155733-d71efd44bd1b?auto=format&fit=crop&w=600&q=80"
+                        image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=600&q=80"
                     },
                     {
                         id: 2,
@@ -422,7 +598,7 @@
                         location: "北京世园公园飞行营地",
                         partnerCount: 2100,
                         groupMembers: 4300,
-                        image: "https://images.unsplash.com/photo-1470229722913-7c092bba1a8d?auto=format&fit=crop&w=600&q=80"
+                        image: "https://images.unsplash.com/photo-1533174000222-35965ec01912?auto=format&fit=crop&w=600&q=80"
                     },
                     {
                         id: 6,
@@ -480,6 +656,12 @@
         computed: {
             currentEvent() {
                 return this.selectedEvent;
+            }
+            filteredEvents() {
+                if (this.selectedCategory === '全部') {
+                    return this.events;
+                }
+                return this.events.filter(event => event.category === this.selectedCategory);
             }
         },
         methods: {
@@ -540,6 +722,15 @@
                 this.newPartnerForm = { type: '拼车', city: '', desc: '', cost: '' };
                 this.activeTab = 'partner';
             }
+            startAIPlan(item) {
+                this.aiTargetEvent = item;
+                this.showAIModal = true;
+                this.isAILoading = true;
+                // 模拟 AI 生成过程，1.5秒后显示结果
+                setTimeout(() => {
+                    this.isAILoading = false;
+                }, 1500);
+            },
         }
     }).mount('#app');
 </script>
