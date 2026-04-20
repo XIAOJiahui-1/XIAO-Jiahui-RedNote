@@ -635,44 +635,6 @@
         </div>
     </div>
 
-    <!-- 发布搭子招募弹窗 -->
-    <div v-if="showPublishModal" class="absolute inset-0 bg-black/60 z-50 flex items-end justify-center slide-enter-active">
-        <div class="bg-white w-full rounded-t-3xl p-5 pb-8 flex flex-col max-h-[80%]">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg text-gray-800">发布搭子招募</h3>
-                <button @click="showPublishModal = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-            </div>
-            
-            <div class="overflow-y-auto flex-1 hide-scrollbar space-y-4 pr-1">
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">需求类型</label>
-                    <div class="flex space-x-2">
-                        <button v-for="t in ['拼车', '拼房', '现场面基']" :key="t" @click="newPartnerForm.type = t"
-                                :class="['px-3 py-1.5 rounded-lg text-xs font-medium border', newPartnerForm.type === t ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200']">
-                            {{ t }}
-                        </button>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">出发/所在城市</label>
-                    <input v-model="newPartnerForm.city" type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="例如：广州">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">标题及需求说明</label>
-                    <textarea v-model="newPartnerForm.desc" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="说明你的座位区、出发时间或住宿偏好..."></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">费用均摊说明 (选填)</label>
-                    <input v-model="newPartnerForm.cost" type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="例如：AA打车，约50元/人">
-                </div>
-            </div>
-            
-            <button @click="submitPartner" class="w-full bg-primary text-white font-bold py-3 rounded-xl mt-4 shadow-md active:scale-95 transition-transform">
-                实名发布
-            </button>
-        </div>
-    </div>
-
     <!-- 底部导航栏 - 增加激活动画 -->
     <div v-if="['home', 'tickets', 'messages', 'profile'].includes(currentView)" class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 shrink-0 z-40">
         <div @click="currentView = 'home'" :class="['flex flex-col items-center cursor-pointer transition-all', currentView === 'home' ? 'text-primary animate-navActive' : 'text-gray-400']">
@@ -701,23 +663,24 @@
     createApp({
         data() {
             return {
-                showAIModal: false,
-                isAILoading: false,
-                aiTargetEvent: null,
-                selectedCategory: '全部',
-                categories: ['全部', '演唱会', '音乐节', '体育赛事', '电竞赛事', '话剧音乐剧', '漫展展览'],
-                currentView: 'home', 
-                activeTab: 'chat', 
+                currentView: 'home',
+                activeTab: 'info',
                 currentEvent: null,
-                showPublishModal: false,
-                newMessage: '',
-                // Toast相关
                 showToast: false,
                 toastMessage: '',
-                // 保存的行程数据
+                selectedCategory: '全部',
+                categories: ['全部', '演唱会', '体育赛事', '话剧歌剧', '音乐节'],
+                showPublishModal: false,
+                newMessage: '',
                 savedTrip: [],
-                // 赛事数据 - 增加标签字段
-                events: [
+                newPartnerForm: {
+                    type: '拼车',
+                    title: '',
+                    desc: '',
+                    costStr: ''
+                },
+
+                filteredEvents: [
                     {
                         id: 1,
                         title: "Taylor Swift The Eras Tour 时代巡回演唱会 - 东京站",
@@ -846,12 +809,6 @@
                     { id: 2, user: '电竞老炮', avatar: 'https://ui-avatars.com/api/?name=炮&background=e0f2fe&color=0369a1', gender: '男', age: 28, type: '拼车', title: '伦敦O2体育馆拼车', desc: '11.02比赛日，从伦敦市中心出发，可接3人，费用AA', costStr: '¥80/人' },
                     { id: 3, user: '音乐控', avatar: 'https://ui-avatars.com/api/?name=音&background=f5f3ff&color=8b5cf6', gender: '女', age: 26, type: '现场面基', title: 'Taylor Swift演唱会面基', desc: '内场VIP区，想找同区域的小伙伴一起打卡、应援', costStr: '' }
                 ],
-                // 发布搭子表单
-                newPartnerForm: {
-                    type: '拼车',
-                    city: '',
-                    desc: '',
-                    cost: ''
                 }
             };
         },
@@ -879,42 +836,23 @@
             // 发送消息
             sendMessage() {
                 if (!this.newMessage.trim()) return;
-                this.chatMessages.push({
-                    id: this.chatMessages.length + 1,
-                    user: '我',
-                    avatar: 'https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9',
+                const newMsg = {
+                    id: Date.now(),
+                    user: "我",
+                    avatar: "https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9",
                     text: this.newMessage,
                     isMe: true,
-                    verified: true
-                });
+                    verified: true,
+                    // 新增：关键词匹配应援消息
+                    isSupport: /应援|灯牌|口号|组队/.test(this.newMessage)
+                };
+                this.chatMessages.push(newMsg);
                 this.newMessage = '';
-                // 滚动到聊天底部
+                // 滚动到底部
                 setTimeout(() => {
-                    const container = document.getElementById('chat-container');
-                    container.scrollTop = container.scrollHeight;
+                    const chatContainer = document.getElementById('chat-container');
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
                 }, 0);
-            },
-            // 提交搭子发布
-            submitPartner() {
-                if (!this.newPartnerForm.city || !this.newPartnerForm.desc) {
-                    this.showToastMessage('请填写完整信息');
-                    return;
-                }
-                this.partners.unshift({
-                    id: this.partners.length + 1,
-                    user: '我',
-                    avatar: 'https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9',
-                    gender: '女',
-                    age: 25,
-                    type: this.newPartnerForm.type,
-                    title: `${this.newPartnerForm.city}${this.newPartnerForm.type}`,
-                    desc: this.newPartnerForm.desc,
-                    costStr: this.newPartnerForm.cost || ''
-                });
-                this.showPublishModal = false;
-                this.showToastMessage('发布成功！');
-                // 重置表单
-                this.newPartnerForm = { type: '拼车', city: '', desc: '', cost: '' };
             },
             // 应用AI规划到行程
             applyAIPlan(e) {
