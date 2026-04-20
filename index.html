@@ -17,6 +17,31 @@
                         secondary: '#DB2777', // 粉色
                         dark: '#111827',
                         light: '#F3F4F6'
+                    },
+                    keyframes: {
+                        slideUnderline: {
+                            '0%': { width: '0', left: '50%' },
+                            '100%': { width: '100%', left: '0' }
+                        },
+                        navActive: {
+                            '0%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.2)' },
+                            '100%': { transform: 'scale(1.1)' }
+                        },
+                        ripple: {
+                            '0%': { transform: 'scale(0)', opacity: 1 },
+                            '100%': { transform: 'scale(2)', opacity: 0 }
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: 0, transform: 'translateY(10px)' },
+                            '100%': { opacity: 1, transform: 'translateY(0)' }
+                        }
+                    },
+                    animation: {
+                        slideUnderline: 'slideUnderline 0.3s ease forwards',
+                        navActive: 'navActive 0.3s ease forwards',
+                        ripple: 'ripple 0.6s ease-out',
+                        fadeInUp: 'fadeInUp 0.4s ease forwards'
                     }
                 }
             }
@@ -91,11 +116,83 @@
         .message-bubble {
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
+
+        /* Toast提示样式 */
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* Tab下划线动画容器 */
+        .tab-underline {
+            position: relative;
+        }
+        .tab-underline::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: #6D28D9;
+            border-radius: 1px;
+        }
+        .tab-underline.active::after {
+            animation: slideUnderline 0.3s ease forwards;
+        }
+
+        /* 波纹效果容器 */
+        .ripple-container {
+            position: relative;
+            overflow: hidden;
+        }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: scale(0);
+            animation: ripple 0.6s ease-out;
+            pointer-events: none;
+        }
+
+        /* 卡片渐变遮罩 */
+        .card-gradient-mask {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%);
+            z-index: 1;
+        }
+
+        /* 搜索栏微动效 */
+        .search-input:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(109, 40, 217, 0.2);
+        }
+        .search-input {
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
 
 <div id="app">
+    <!-- Toast提示组件 -->
+    <div class="toast" :class="{ show: showToast }">{{ toastMessage }}</div>
+
+    <!-- 首页 -->
     <div v-show="currentView === 'home'" class="flex flex-col h-full w-full bg-gray-50">
         <div class="bg-gradient-brand pt-12 pb-6 px-5 rounded-b-3xl shadow-lg relative z-10 shrink-0">
             <div class="flex justify-between items-center mb-4 text-white">
@@ -105,7 +202,8 @@
                 </div>
                 <img src="https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
             </div>
-            <div class="bg-white/20 backdrop-blur-md rounded-full flex items-center px-4 py-2 text-white border border-white/30">
+            <!-- 搜索栏添加微动效 -->
+            <div class="search-input bg-white/20 backdrop-blur-md rounded-full flex items-center px-4 py-2 text-white border border-white/30">
                 <i class="fas fa-search opacity-70"></i>
                 <input type="text" placeholder="搜索演唱会、赛事、找搭子..." class="bg-transparent border-none outline-none ml-2 text-sm placeholder-white/70 w-full">
             </div>
@@ -139,13 +237,19 @@
         <div class="flex-1 overflow-y-auto hide-scrollbar px-5 py-4 pb-20">
             <h2 class="text-lg font-bold text-gray-800 mb-4">热门现场组队中</h2>
             
-            <div v-for="item in filteredEvents" :key="item.id" @click="goToDetail(item)" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4 active:scale-[0.98] transition-transform cursor-pointer">
+            <div v-for="item in filteredEvents" :key="item.id" @click="goToDetail(item)" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4 active:scale-[0.98] transition-transform cursor-pointer animate-fadeInUp">
                 <div class="h-36 relative">
                     <img :src="item.image" class="w-full h-full object-cover" alt="event poster">
-                    <div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                    <!-- 卡片渐变遮罩 -->
+                    <div class="card-gradient-mask"></div>
+                    <div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md z-20">
                         {{ item.category }}
                     </div>
-                    <div class="absolute bottom-2 right-2 bg-white/90 backdrop-blur text-purple-700 text-[10px] font-bold px-2 py-1 rounded-full shadow-sm flex items-center">
+                    <!-- 标签徽章 -->
+                    <div class="absolute top-2 right-2 bg-yellow-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm z-20">
+                        {{ item.tag }}
+                    </div>
+                    <div class="absolute bottom-2 right-2 bg-white/90 backdrop-blur text-purple-700 text-[10px] font-bold px-2 py-1 rounded-full shadow-sm flex items-center z-20">
                         <i class="fas fa-fire text-orange-500 mr-1"></i> {{ item.partnerCount }}人在找搭子
                     </div>
                 </div>
@@ -159,6 +263,13 @@
                         <div class="flex -space-x-2">
                             </div>
                         <div class="flex space-x-2">
+                            <!-- 新增找搭子、AI规划按钮 -->
+                            <button class="bg-pink-100 text-pink-700 font-medium text-xs px-3 py-1.5 rounded-lg">
+                                找搭子 <i class="fas fa-user-friends text-[10px] ml-1"></i>
+                            </button>
+                            <button class="bg-blue-100 text-blue-700 font-medium text-xs px-3 py-1.5 rounded-lg">
+                                AI规划 <i class="fas fa-robot text-[10px] ml-1"></i>
+                            </button>
                             <button class="bg-purple-100 text-purple-700 font-medium text-xs px-3 py-1.5 rounded-lg">
                                 去组队 <i class="fas fa-chevron-right text-[10px] ml-1"></i>
                             </button>
@@ -167,10 +278,9 @@
                 </div>
             </div>
         </div>
-
-
     </div>
 
+    <!-- 我的票夹 -->
     <div v-show="currentView === 'tickets'" class="flex flex-col h-full w-full bg-gray-50 pt-12 px-5">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">我的票夹</h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 relative overflow-hidden">
@@ -182,13 +292,28 @@
                 <button class="bg-primary text-white text-xs px-3 py-1.5 rounded-lg font-bold">查看电子票</button>
             </div>
         </div>
+
+        <!-- 新增AI规划行程展示 -->
+        <div v-if="savedTrip.length > 0" class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-fadeInUp">
+            <h3 class="font-bold text-gray-900 mb-2 flex items-center">
+                <i class="fas fa-route text-primary mr-2"></i> 我的智能行程
+            </h3>
+            <div class="space-y-2 text-xs text-gray-600">
+                <div v-for="(item, idx) in savedTrip" :key="idx" class="bg-gray-50 p-2 rounded-lg">
+                    <p class="font-medium text-gray-800">{{ item.title }}</p>
+                    <p>{{ item.content }}</p>
+                </div>
+            </div>
+        </div>
+
         <div class="mt-8 text-center text-xs text-gray-400">没有更多票面了</div>
     </div>
 
+    <!-- 消息页面 -->
     <div v-show="currentView === 'messages'" class="flex flex-col h-full w-full bg-white pt-12">
         <h2 class="text-2xl font-bold text-gray-800 mb-2 px-5">消息</h2>
         <div class="flex-1 overflow-y-auto">
-            <div class="flex items-center px-5 py-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer">
+            <div class="flex items-center px-5 py-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer animate-fadeInUp">
                 <img src="https://ui-avatars.com/api/?name=官&background=f3f4f6&color=6D28D9" class="w-12 h-12 rounded-full mr-3">
                 <div class="flex-1">
                     <div class="flex justify-between items-center mb-1">
@@ -198,7 +323,7 @@
                     <p class="text-xs text-gray-500 truncate w-56">票务小助手: 欢迎大家加入本群...</p>
                 </div>
             </div>
-            <div class="flex items-center px-5 py-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer">
+            <div class="flex items-center px-5 py-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer animate-fadeInUp">
                 <img src="https://ui-avatars.com/api/?name=桃&background=fce7f3&color=db2777" class="w-12 h-12 rounded-full mr-3 relative">
                 <div class="flex-1">
                     <div class="flex justify-between items-center mb-1">
@@ -212,6 +337,7 @@
         </div>
     </div>
 
+    <!-- 个人中心 -->
     <div v-show="currentView === 'profile'" class="flex flex-col h-full w-full bg-gray-50">
         <div class="bg-gradient-brand pt-16 pb-12 px-5 text-white rounded-b-3xl relative">
             <div class="flex items-center space-x-4">
@@ -224,13 +350,13 @@
         </div>
         
         <div class="px-5 -mt-6 relative z-10">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 flex justify-around text-center">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 flex justify-around text-center animate-fadeInUp">
                 <div><div class="text-lg font-bold text-gray-800">1</div><div class="text-[10px] text-gray-500">已看现场</div></div>
                 <div><div class="text-lg font-bold text-gray-800">2</div><div class="text-[10px] text-gray-500">发布的搭子</div></div>
                 <div><div class="text-lg font-bold text-gray-800">95</div><div class="text-[10px] text-gray-500">信用评分</div></div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeInUp">
                 <div class="flex items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer">
                     <span class="text-sm font-medium text-gray-700"><i class="fas fa-wallet w-6 text-center text-primary"></i> 我的AA账单</span>
                     <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
@@ -247,7 +373,8 @@
         </div>
     </div>
 
-    <div v-if="currentView === 'detail' && currentEvent" class="flex flex-col h-full w-full bg-gray-50 absolute top-0 left-0 z-30">
+    <!-- 赛事详情页 -->
+    <div v-if="currentView === 'detail' && currentEvent" class="flex flex-col h-full w-full bg-gray-50 absolute top-0 left-0 z-30 animate-fadeInUp">
         <div class="absolute top-0 w-full p-4 pt-12 flex justify-between items-center z-40 bg-gradient-to-b from-black/60 to-transparent text-white">
             <button @click="goBack" class="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
                 <i class="fas fa-chevron-left text-sm"></i>
@@ -268,27 +395,34 @@
             </div>
         </div>
 
+        <!-- Tab切换栏 - 增加下划线动画 -->
         <div class="bg-white rounded-t-3xl -mt-4 relative z-20 flex px-2 pt-2 border-b border-gray-100 shrink-0 shadow-sm">
-            <button @click="activeTab = 'info'" :class="['flex-1 py-3 text-sm font-medium transition-colors border-b-2', activeTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500']">
+            <button @click="activeTab = 'info'" 
+                   :class="['flex-1 py-3 text-sm font-medium transition-colors tab-underline', 
+                           activeTab === 'info' ? 'active border-primary text-primary' : 'border-transparent text-gray-500']">
                 演出详情
             </button>
-            <button @click="activeTab = 'chat'" :class="['flex-1 py-3 text-sm font-medium transition-colors border-b-2 relative', activeTab === 'chat' ? 'border-primary text-primary' : 'border-transparent text-gray-500']">
+            <button @click="activeTab = 'chat'" 
+                   :class="['flex-1 py-3 text-sm font-medium transition-colors tab-underline relative', 
+                           activeTab === 'chat' ? 'active border-primary text-primary' : 'border-transparent text-gray-500']">
                 专属群聊
                 <span class="absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
             </button>
-            <button @click="activeTab = 'partner'" :class="['flex-1 py-3 text-sm font-medium transition-colors border-b-2', activeTab === 'partner' ? 'border-primary text-primary' : 'border-transparent text-gray-500']">
+            <button @click="activeTab = 'partner'" 
+                   :class="['flex-1 py-3 text-sm font-medium transition-colors tab-underline', 
+                           activeTab === 'partner' ? 'active border-primary text-primary' : 'border-transparent text-gray-500']">
                 找搭子
             </button>
             <button @click="activeTab = 'ai'" 
-            :class="['flex-1 py-3 text-sm font-medium transition-colors border-b-2',
-            activeTab === 'ai' ? 'border-primary text-primary' : 'border-transparent text-gray-500']">
+                   :class="['flex-1 py-3 text-sm font-medium transition-colors tab-underline', 
+                           activeTab === 'ai' ? 'active border-primary text-primary' : 'border-transparent text-gray-500']">
                 AI规划
             </button>
         </div>
 
         <div class="flex-1 overflow-y-auto hide-scrollbar relative bg-gray-50">
-            
-            <div v-show="activeTab === 'info'" class="p-5 space-y-4">
+            <!-- 演出详情Tab -->
+            <div v-show="activeTab === 'info'" class="p-5 space-y-4 animate-fadeInUp">
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50">
                     <h3 class="font-bold text-gray-800 mb-3 border-l-4 border-primary pl-2 text-sm">基础信息</h3>
                     <div class="space-y-3 text-xs text-gray-600">
@@ -310,7 +444,8 @@
                 </div>
             </div>
 
-            <div v-show="activeTab === 'chat'" class="flex flex-col h-full relative">
+            <!-- 专属群聊Tab -->
+            <div v-show="activeTab === 'chat'" class="flex flex-col h-full relative animate-fadeInUp">
                 <div class="bg-green-50 border-b border-green-100 p-2 flex items-start px-4 shrink-0 shadow-sm z-10">
                     <i class="fas fa-shield-check text-green-600 mt-0.5 mr-2"></i>
                     <div class="text-[10px] text-green-800">
@@ -349,7 +484,8 @@
                 </div>
             </div>
 
-            <div v-show="activeTab === 'partner'" class="p-4 relative min-h-full pb-24">              
+            <!-- 找搭子Tab -->
+            <div v-show="activeTab === 'partner'" class="p-4 relative min-h-full pb-24 animate-fadeInUp">              
                 <div class="space-y-3">
                     <div v-for="partner in partners" :key="partner.id" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                         <div class="flex justify-between items-start mb-3">
@@ -389,48 +525,107 @@
                     </div>
                 </div>
 
-                <div v-show="activeTab === 'ai'" class="p-5 space-y-4">
-                    <div class="bg-purple-50 p-3 rounded-xl border border-purple-100">
-                        <p class="text-xs text-purple-800 font-bold mb-1">
-                            目标：{{ currentEvent?.title }}
-                        </p>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-xl shadow-sm">
-                        <h4 class="text-sm font-bold mb-2">🚗 路线</h4>
-                        <p class="text-xs text-gray-600">
-                            建议地铁优先，避开高峰
-                        </p>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-xl shadow-sm">
-                        <h4 class="text-sm font-bold mb-2">🏨 住宿</h4>
-                        <p class="text-xs text-gray-600">
-                            场馆周边1.5km酒店最优
-                        </p>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-xl shadow-sm">
-                        <h4 class="text-sm font-bold mb-2">🍻 搭子</h4>
-                        <p class="text-xs text-gray-600">
-                            {{ currentEvent?.partnerCount }}人在找搭子
-                        </p>
-                    </div>
-
-                    <button @click="applyAIPlan"
-                    class="w-full bg-gradient-to-r from-primary to-secondary text-white py-3 rounded-xl font-bold active:scale-95">
-                        一键应用至我的行程
-                    </button>
-
-</div>
-
                 <button @click="showPublishModal = true" class="absolute bottom-6 right-4 w-12 h-12 bg-secondary text-white rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-pink-600 transition-transform active:scale-95 z-10">
                     <i class="fas fa-edit"></i>
                 </button>
             </div>
+
+            <!-- AI规划Tab - 修复空白问题，补充完整内容 -->
+            <div v-show="activeTab === 'ai'" class="p-5 space-y-4 animate-fadeInUp">
+                <div class="bg-purple-50 p-3 rounded-xl border border-purple-100">
+                    <p class="text-xs text-purple-800 font-bold mb-1 flex items-center">
+                        <i class="fas fa-robot mr-2"></i> 智能行程规划：{{ currentEvent?.title }}
+                    </p>
+                </div>
+
+                <!-- 行程规划卡片 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <h4 class="text-sm font-bold mb-3 flex items-center text-gray-800">
+                        <i class="fas fa-route text-primary mr-2 w-5 h-5 flex items-center justify-center bg-primary/10 rounded-full"></i> 行程规划
+                    </h4>
+                    <div class="space-y-2 text-xs text-gray-600">
+                        <div class="flex items-start">
+                            <span class="w-20 text-gray-400">出发时间</span>
+                            <span class="flex-1 font-medium text-gray-800">2024.11.20 16:00（建议提前3小时到场）</span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="w-20 text-gray-400">交通路线</span>
+                            <span class="flex-1 font-medium text-gray-800">
+                                地铁：JR中央线至东京巨蛋前站（步行5分钟）<br>
+                                自驾：场馆停车场18:00后车位紧张，建议公共交通
+                            </span>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="w-20 text-gray-400">到场建议</span>
+                            <span class="flex-1 font-medium text-gray-800">携带充电宝、提前兑换纸质票，安检口排队约20分钟</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 住宿推荐卡片 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <h4 class="text-sm font-bold mb-3 flex items-center text-gray-800">
+                        <i class="fas fa-hotel text-secondary mr-2 w-5 h-5 flex items-center justify-center bg-secondary/10 rounded-full"></i> 住宿推荐
+                    </h4>
+                    <div class="space-y-3 text-xs text-gray-600">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                            <div>
+                                <p class="font-medium text-gray-800">东京巨蛋酒店</p>
+                                <p class="text-gray-500">距离场馆200m | 步行3分钟</p>
+                            </div>
+                            <p class="text-pink-600 font-bold">¥2800/晚起</p>
+                        </div>
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                            <div>
+                                <p class="font-medium text-gray-800">池袋阳光酒店</p>
+                                <p class="text-gray-500">距离场馆1.2km | 地铁1站</p>
+                            </div>
+                            <p class="text-pink-600 font-bold">¥1500/晚起</p>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium text-gray-800">上野民宿</p>
+                                <p class="text-gray-500">距离场馆3km | 地铁2站</p>
+                            </div>
+                            <p class="text-pink-600 font-bold">¥800/晚起</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 场地规则卡片 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <h4 class="text-sm font-bold mb-3 flex items-center text-gray-800">
+                        <i class="fas fa-exclamation-circle text-orange-500 mr-2 w-5 h-5 flex items-center justify-center bg-orange-100 rounded-full"></i> 场地规则
+                    </h4>
+                    <div class="space-y-2 text-xs text-gray-600">
+                        <div class="flex items-center">
+                            <i class="fas fa-check text-green-500 mr-2"></i>
+                            <span>可携带密封饮用水（500ml以内）、小型背包</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-times text-red-500 mr-2"></i>
+                            <span>禁止携带自拍杆、专业相机、食品、打火机</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                            <span>安检提示：需出示身份证件+购票凭证，禁止代排</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 一键应用按钮 - 渐变+波纹效果 -->
+                <div class="ripple-container">
+                    <button @click="applyAIPlan" 
+                            class="w-full bg-gradient-brand text-white py-3 rounded-xl font-bold active:scale-95 relative overflow-hidden">
+                        一键应用至我的行程
+                        <div class="ripple" ref="ripple"></div>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- 发布搭子招募弹窗 -->
     <div v-if="showPublishModal" class="absolute inset-0 bg-black/60 z-50 flex items-end justify-center slide-enter-active">
         <div class="bg-white w-full rounded-t-3xl p-5 pb-8 flex flex-col max-h-[80%]">
             <div class="flex justify-between items-center mb-4">
@@ -468,49 +663,26 @@
         </div>
     </div>
 
-
-<div v-if="['home', 'tickets', 'messages', 'profile'].includes(currentView)" class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 shrink-0 z-40">
-        <div @click="currentView = 'home'" :class="['flex flex-col items-center cursor-pointer', currentView === 'home' ? 'text-primary' : 'text-gray-400']">
-            <i class="fas fa-compass text-xl mb-1"></i>
-            <span class="text-[10px] font-medium">发现</span>
-        </div>
-        <div @click="currentView = 'tickets'" :class="['flex flex-col items-center cursor-pointer', currentView === 'tickets' ? 'text-primary' : 'text-gray-400']">
-            <i class="fas fa-ticket-alt text-xl mb-1"></i>
-            <span class="text-[10px] font-medium">我的票夹</span>
-        </div>
-        <div @click="currentView = 'messages'" :class="['flex flex-col items-center cursor-pointer relative', currentView === 'messages' ? 'text-primary' : 'text-gray-400']">
-            <div class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-            <i class="fas fa-comments text-xl mb-1"></i>
-            <span class="text-[10px] font-medium">消息</span>
-        </div>
-        <div @click="currentView = 'profile'" :class="['flex flex-col items-center cursor-pointer', currentView === 'profile' ? 'text-primary' : 'text-gray-400']">
-            <i class="fas fa-user text-xl mb-1"></i>
-            <span class="text-[10px] font-medium">我的</span>
-        </div>
-    </div>
-
-</div>
-
+    <!-- 底部导航栏 - 增加激活动画 -->
     <div v-if="['home', 'tickets', 'messages', 'profile'].includes(currentView)" class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 shrink-0 z-40">
-        <div @click="currentView = 'home'" :class="['flex flex-col items-center cursor-pointer', currentView === 'home' ? 'text-primary' : 'text-gray-400']">
+        <div @click="currentView = 'home'" :class="['flex flex-col items-center cursor-pointer transition-all', currentView === 'home' ? 'text-primary animate-navActive' : 'text-gray-400']">
             <i class="fas fa-compass text-xl mb-1"></i>
             <span class="text-[10px] font-medium">发现</span>
         </div>
-        <div @click="currentView = 'tickets'" :class="['flex flex-col items-center cursor-pointer', currentView === 'tickets' ? 'text-primary' : 'text-gray-400']">
+        <div @click="currentView = 'tickets'" :class="['flex flex-col items-center cursor-pointer transition-all', currentView === 'tickets' ? 'text-primary animate-navActive' : 'text-gray-400']">
             <i class="fas fa-ticket-alt text-xl mb-1"></i>
             <span class="text-[10px] font-medium">我的票夹</span>
         </div>
-        <div @click="currentView = 'messages'" :class="['flex flex-col items-center cursor-pointer relative', currentView === 'messages' ? 'text-primary' : 'text-gray-400']">
+        <div @click="currentView = 'messages'" :class="['flex flex-col items-center cursor-pointer relative transition-all', currentView === 'messages' ? 'text-primary animate-navActive' : 'text-gray-400']">
             <div class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
             <i class="fas fa-comments text-xl mb-1"></i>
             <span class="text-[10px] font-medium">消息</span>
         </div>
-        <div @click="currentView = 'profile'" :class="['flex flex-col items-center cursor-pointer', currentView === 'profile' ? 'text-primary' : 'text-gray-400']">
+        <div @click="currentView = 'profile'" :class="['flex flex-col items-center cursor-pointer transition-all', currentView === 'profile' ? 'text-primary animate-navActive' : 'text-gray-400']">
             <i class="fas fa-user text-xl mb-1"></i>
             <span class="text-[10px] font-medium">我的</span>
         </div>
     </div>
-
 </div>
 
 <script>
@@ -519,19 +691,22 @@
     createApp({
         data() {
             return {
-                // 修复 1：把这些新增的变量放进 return {} 里面
                 showAIModal: false,
                 isAILoading: false,
                 aiTargetEvent: null,
                 selectedCategory: '全部',
                 categories: ['全部', '演唱会', '音乐节', '体育赛事', '电竞赛事', '话剧音乐剧', '漫展展览'],
-                
-                currentView: 'home', // 'home', 'detail'
-                activeTab: 'chat', // 'info', 'chat', 'partner'
-                selectedEvent: null,
+                currentView: 'home', 
+                activeTab: 'chat', 
+                currentEvent: null,
                 showPublishModal: false,
                 newMessage: '',
-                // 生成多样化的赛事/演出数据，使用高质量图片
+                // Toast相关
+                showToast: false,
+                toastMessage: '',
+                // 保存的行程数据
+                savedTrip: [],
+                // 赛事数据 - 增加标签字段
                 events: [
                     {
                         id: 1,
@@ -541,7 +716,8 @@
                         location: "东京巨蛋 (Tokyo Dome)",
                         partnerCount: 1250,
                         groupMembers: 3500,
-                        image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=600&q=80"
+                        image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=600&q=80",
+                        tag: "热门"
                     },
                     {
                         id: 2,
@@ -551,7 +727,8 @@
                         location: "伦敦 O2 体育馆",
                         partnerCount: 890,
                         groupMembers: 2100,
-                        image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80"
+                        image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80",
+                        tag: "即将开始"
                     },
                     {
                         id: 3,
@@ -561,7 +738,8 @@
                         location: "杭州奥体中心体育场",
                         partnerCount: 3200,
                         groupMembers: 5000,
-                        image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=600&q=80"
+                        image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=600&q=80",
+                        tag: "热门"
                     },
                     {
                         id: 4,
@@ -571,7 +749,8 @@
                         location: "上海旗忠网球中心",
                         partnerCount: 340,
                         groupMembers: 1200,
-                        image: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=600&q=80"
+                        image: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=600&q=80",
+                        tag: "即将开始"
                     },
                     {
                         id: 5,
@@ -581,7 +760,8 @@
                         location: "北京世园公园飞行营地",
                         partnerCount: 2100,
                         groupMembers: 4300,
-                        image: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400"
+                        image: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400",
+                        tag: "热门"
                     },
                     {
                         id: 6,
@@ -591,7 +771,8 @@
                         location: "上海大剧院",
                         partnerCount: 156,
                         groupMembers: 800,
-                        image: "https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=400"
+                        image: "https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=400",
+                        tag: "稀缺"
                     },
                     {
                         id: 7,
@@ -601,7 +782,8 @@
                         location: "上海东方体育中心",
                         partnerCount: 420,
                         groupMembers: 950,
-                        image: "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=600&q=80"
+                        image: "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=600&q=80",
+                        tag: "稀缺"
                     },
                     {
                         id: 8,
@@ -611,110 +793,137 @@
                         location: "上海新国际博览中心",
                         partnerCount: 4500,
                         groupMembers: 8000,
-                        image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80"
+                        image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80",
+                        tag: "热门"
                     }
                 ],
                 // 模拟聊天数据
                 chatMessages: [
                     { id: 1, user: '票务小助手', avatar: 'https://ui-avatars.com/api/?name=官&background=f3f4f6&color=6D28D9', text: '欢迎加入本场演出的官方验票群！大家可以在这里交流攻略、找搭子。', isMe: false, verified: true },
-                    { id: 2, user: '看海的猫', avatar: 'https://ui-avatars.com/api/?name=猫&background=random', text: '内场 VIP 1区的朋友有吗？举个手！', isMe: false, verified: true },
-                    { id: 3, user: '阿杰_Jay', avatar: 'https://ui-avatars.com/api/?name=杰&background=random', text: '我买了看台票，请问大家场馆附近有什么好吃的推荐吗？看完打算吃个宵夜。', isMe: false, verified: true },
-                    { id: 4, user: 'Lily', avatar: 'https://ui-avatars.com/api/?name=L&background=random', text: '我在找搭子版块发了拼车贴，从高铁站出发的，差一个人，AA车费大概一人30，大家看下！', isMe: false, verified: true }
+                    { id: 2, user: '冰摇桃桃', avatar: 'https://ui-avatars.com/api/?name=桃&background=fce7f3&color=db2777', text: '有没有小伙伴一起拼房的？我订了双人房，可分摊费用', isMe: false, verified: true },
+                    { id: 3, user: '我', avatar: 'https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9', text: '我感兴趣！请问酒店位置在哪里？', isMe: true, verified: true }
                 ],
-                // 模拟搭子数据
+                // 找搭子数据
                 partners: [
-                    { id: 1, user: '陈大仙', gender: '男', age: '95后', type: '拼车', title: '高铁站拼车直达场馆', desc: '下午3点高铁站集合，打专车直达场馆，避开地铁早高峰。已有2人，再找2个同好。', costStr: 'AA打车，预估 ¥40/人', avatar: 'https://ui-avatars.com/api/?name=陈&background=random' },
-                    { id: 2, user: '冰摇桃桃', gender: '女', age: '00后', type: '拼房', title: '找一女生拼场馆附近酒店', desc: '已经定了全季酒店（距离场馆步行15分钟），大床房。限女生，不打呼噜，看完一起回酒店比较安全。', costStr: '房费均摊 ¥250/晚', avatar: 'https://ui-avatars.com/api/?name=桃&background=random' },
-                    { id: 3, user: '野生摄影师', gender: '男', age: '90后', type: '现场面基', title: '内场前排找互拍搭子', desc: '带了单反，找内场的朋友互相帮忙拍几张入场打卡照，顺便一起领官方应援物。', costStr: '', avatar: 'https://ui-avatars.com/api/?name=影&background=random' }
+                    { id: 1, user: '冰摇桃桃', avatar: 'https://ui-avatars.com/api/?name=桃&background=fce7f3&color=db2777', gender: '女', age: 24, type: '拼房', title: '东京巨蛋附近拼房', desc: '订了东京巨蛋酒店双人房，日期11.19-11.22，可分摊房费，女生优先', costStr: '¥1400/人/晚' },
+                    { id: 2, user: '电竞老炮', avatar: 'https://ui-avatars.com/api/?name=炮&background=e0f2fe&color=0369a1', gender: '男', age: 28, type: '拼车', title: '伦敦O2体育馆拼车', desc: '11.02比赛日，从伦敦市中心出发，可接3人，费用AA', costStr: '¥80/人' },
+                    { id: 3, user: '音乐控', avatar: 'https://ui-avatars.com/api/?name=音&background=f5f3ff&color=8b5cf6', gender: '女', age: 26, type: '现场面基', title: 'Taylor Swift演唱会面基', desc: '内场VIP区，想找同区域的小伙伴一起打卡、应援', costStr: '' }
                 ],
-                // 表单状态
+                // 发布搭子表单
                 newPartnerForm: {
                     type: '拼车',
                     city: '',
                     desc: '',
                     cost: ''
                 }
-                
-            }
+            };
         },
         computed: {
-            currentEvent() {
-                return this.selectedEvent;
-            }, // 修复 2：这里补上逗号
+            // 筛选赛事
             filteredEvents() {
                 if (this.selectedCategory === '全部') {
                     return this.events;
                 }
-                return this.events.filter(event => event.category === this.selectedCategory);
+                return this.events.filter(item => item.category === this.selectedCategory);
             }
         },
         methods: {
+            // 进入详情页
             goToDetail(item) {
-                this.selectedEvent = item;
                 this.currentView = 'detail';
-                this.activeTab = 'chat'; // 默认进入群聊
-                this.$nextTick(() => {
-                    this.scrollToBottom();
-                });
+                this.currentEvent = item;
+                this.activeTab = 'info';
             },
+            // 返回上一页
             goBack() {
                 this.currentView = 'home';
-                this.selectedEvent = null;
+                this.currentEvent = null;
             },
+            // 发送消息
             sendMessage() {
                 if (!this.newMessage.trim()) return;
-                
                 this.chatMessages.push({
-                    id: Date.now(),
+                    id: this.chatMessages.length + 1,
                     user: '我',
                     avatar: 'https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9',
                     text: this.newMessage,
                     isMe: true,
                     verified: true
                 });
-                
                 this.newMessage = '';
-                this.$nextTick(() => {
-                    this.scrollToBottom();
-                });
-            },
-            scrollToBottom() {
-                const container = document.getElementById('chat-container');
-                if (container) {
+                // 滚动到聊天底部
+                setTimeout(() => {
+                    const container = document.getElementById('chat-container');
                     container.scrollTop = container.scrollHeight;
-                }
+                }, 0);
             },
+            // 提交搭子发布
             submitPartner() {
-                if (!this.newPartnerForm.desc) {
-                    alert('请填写需求说明');
+                if (!this.newPartnerForm.city || !this.newPartnerForm.desc) {
+                    this.showToastMessage('请填写完整信息');
                     return;
                 }
-                
                 this.partners.unshift({
-                    id: Date.now(),
+                    id: this.partners.length + 1,
                     user: '我',
-                    gender: '保密',
-                    age: '00后',
+                    avatar: 'https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9',
+                    gender: '女',
+                    age: 25,
                     type: this.newPartnerForm.type,
-                    title: this.newPartnerForm.city ? `${this.newPartnerForm.city}出发求组队` : '发布了新需求',
+                    title: `${this.newPartnerForm.city}${this.newPartnerForm.type}`,
                     desc: this.newPartnerForm.desc,
-                    costStr: this.newPartnerForm.cost,
-                    avatar: 'https://ui-avatars.com/api/?name=Me&background=ffffff&color=6D28D9'
+                    costStr: this.newPartnerForm.cost || ''
                 });
-                
                 this.showPublishModal = false;
+                this.showToastMessage('发布成功！');
+                // 重置表单
                 this.newPartnerForm = { type: '拼车', city: '', desc: '', cost: '' };
-                this.activeTab = 'partner';
-            }, // 修复 3：这里补上逗号
-            startAIPlan(item) {
-                this.aiTargetEvent = item;
-                this.showAIModal = true;
-                this.isAILoading = true;
-                // 模拟 AI 生成过程，1.5秒后显示结果
+            },
+            // 应用AI规划到行程
+            applyAIPlan(e) {
+                // 波纹效果
+                const ripple = this.$refs.ripple;
+                if (ripple) {
+                    const x = e.clientX - e.target.getBoundingClientRect().left;
+                    const y = e.clientY - e.target.getBoundingClientRect().top;
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                }
+                // 模拟行程数据
+                this.savedTrip = [
+                    { title: '行程规划', content: `出发时间：2024.11.20 16:00 | 交通：JR中央线至东京巨蛋前站` },
+                    { title: '住宿推荐', content: `东京巨蛋酒店（¥2800/晚）| 池袋阳光酒店（¥1500/晚）` },
+                    { title: '场地规则', content: `可带密封饮用水 | 禁止自拍杆、专业相机` }
+                ];
+                this.showToastMessage('行程已保存！');
+            },
+            // 显示Toast提示
+            showToastMessage(msg) {
+                this.toastMessage = msg;
+                this.showToast = true;
                 setTimeout(() => {
-                    this.isAILoading = false;
-                }, 1500);
+                    this.showToast = false;
+                }, 2000);
             }
+        },
+        mounted() {
+            // 监听按钮点击添加波纹效果
+            const rippleButtons = document.querySelectorAll('.ripple-container button');
+            rippleButtons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const ripple = this.querySelector('.ripple');
+                    if (ripple) {
+                        ripple.style.width = Math.max(this.offsetWidth, this.offsetHeight) + 'px';
+                        ripple.style.height = Math.max(this.offsetWidth, this.offsetHeight) + 'px';
+                        ripple.style.left = (e.offsetX - ripple.offsetWidth / 2) + 'px';
+                        ripple.style.top = (e.offsetY - ripple.offsetHeight / 2) + 'px';
+                        ripple.classList.add('animate-ripple');
+                        setTimeout(() => {
+                            ripple.classList.remove('animate-ripple');
+                        }, 600);
+                    }
+                });
+            });
         }
     }).mount('#app');
 </script>
